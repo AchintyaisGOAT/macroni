@@ -1,18 +1,20 @@
-from google import genai
+import requests
 
-from app.config import settings
+from app.config import APP_SHARED_TOKEN, PROXY_URL
 
-_client: genai.Client | None = None
-
-
-class GeminiNotConfigured(RuntimeError):
-    pass
+TIMEOUT_SECONDS = 30
 
 
-def get_client() -> genai.Client:
-    global _client
-    if not settings.has_gemini_key:
-        raise GeminiNotConfigured("GEMINI_API_KEY is not configured")
-    if _client is None:
-        _client = genai.Client(api_key=settings.gemini_api_key)
-    return _client
+def call_proxy(path: str, payload: dict) -> dict:
+    """POST to the MACRONI AI proxy (hosted on Cloud Run), which holds the real
+    Gemini key server-side. Raises requests.HTTPError on non-2xx responses -
+    callers should catch and surface .response.status_code / .response.text.
+    """
+    response = requests.post(
+        f"{PROXY_URL}{path}",
+        json=payload,
+        headers={"X-App-Token": APP_SHARED_TOKEN},
+        timeout=TIMEOUT_SECONDS,
+    )
+    response.raise_for_status()
+    return response.json()

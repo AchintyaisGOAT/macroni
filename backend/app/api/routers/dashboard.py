@@ -93,9 +93,7 @@ def post_regime_refresh():
 def get_status():
     return {
         "fred_configured": settings.has_fred_key,
-        "ai_configured": settings.has_gemini_key,
-        "ai_provider": "gemini",
-        "ai_model": settings.gemini_model,
+        "ai_configured": True,  # AI runs through the hosted proxy - no local key needed
         "last_regime_status": get_last_regime_status(),
         "app_version": get_app_version(),
         "github_repo": GITHUB_REPO,

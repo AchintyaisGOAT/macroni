@@ -2,7 +2,6 @@ import logging
 
 from sqlalchemy.orm import Session
 
-from app.ai.client import GeminiNotConfigured
 from app.ai.interpreter import generate_alert_explanation
 from app.models.alerts import AlertEvent
 from app.models.news import NewsItem
@@ -25,8 +24,6 @@ def explain_new_alerts(db: Session, events: list[AlertEvent]) -> None:
                 news_items=recent_news,
             )
             event.explanation = result.explanation
-        except GeminiNotConfigured:
-            event.explanation = "AI explanation unavailable: GEMINI_API_KEY is not configured."
         except Exception:
             logger.exception("failed to generate AI explanation for alert %s", event.rule_id)
             event.explanation = "AI explanation failed to generate; see logs."

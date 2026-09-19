@@ -11,10 +11,9 @@ interface RegimeNarrativeProps {
   status: RegimeStatus | null;
   onRefresh: () => void;
   refreshing: boolean;
-  aiConfigured: boolean;
 }
 
-export function RegimeNarrative({ report, status, onRefresh, refreshing, aiConfigured }: RegimeNarrativeProps) {
+export function RegimeNarrative({ report, status, onRefresh, refreshing }: RegimeNarrativeProps) {
   return (
     <div
       style={{
@@ -28,35 +27,26 @@ export function RegimeNarrative({ report, status, onRefresh, refreshing, aiConfi
         <div>
           <div style={{ fontSize: 12, color: "var(--text-muted)" }}>Macro regime</div>
           <div style={{ fontSize: 20, fontWeight: 600, marginTop: 2 }}>
-            {report?.regime_label ?? (aiConfigured ? "Not generated yet" : "AI not configured")}
+            {report?.regime_label ?? "Not generated yet"}
           </div>
         </div>
-        {aiConfigured && (
-          <button
-            onClick={onRefresh}
-            disabled={refreshing}
-            style={{
-              border: "1px solid var(--border)",
-              background: "transparent",
-              color: "var(--text-primary)",
-              borderRadius: 6,
-              padding: "6px 12px",
-              fontSize: 12,
-            }}
-          >
-            {refreshing ? "Generating..." : "Regenerate"}
-          </button>
-        )}
+        <button
+          onClick={onRefresh}
+          disabled={refreshing}
+          style={{
+            border: "1px solid var(--border)",
+            background: "transparent",
+            color: "var(--text-primary)",
+            borderRadius: 6,
+            padding: "6px 12px",
+            fontSize: 12,
+          }}
+        >
+          {refreshing ? "Generating..." : "Regenerate"}
+        </button>
       </div>
 
-      {!aiConfigured && (
-        <p style={{ color: "var(--text-secondary)", fontSize: 13, marginTop: 12 }}>
-          Set GEMINI_API_KEY in your .env file to enable AI-generated regime narratives and alert
-          explanations.
-        </p>
-      )}
-
-      {aiConfigured && status?.status === "error" && (
+      {status?.status === "error" && (
         <div
           style={{
             marginTop: 12,

@@ -1,18 +1,10 @@
 import json
 import logging
 
-from google.genai import types
 from sqlalchemy.orm import Session
 
-from app.ai.client import get_client
-from app.ai.prompts import (
-    ALERT_SYSTEM_PROMPT,
-    REGIME_SYSTEM_PROMPT,
-    build_alert_user_prompt,
-    build_regime_user_prompt,
-)
+from app.ai.client import call_proxy
 from app.ai.schemas import AlertExplanation, RegimeReport
-from app.config import settings
 from app.models.news import NewsItem
 from app.models.regime import RegimeReportRecord
 from app.models.signals import SignalSnapshot
@@ -48,23 +40,15 @@ def generate_regime_report(
     news_items: list[NewsItem],
     portfolio_summary_md: str = "No portfolio configured.",
 ) -> RegimeReport:
-    client = get_client()
-    signal_table_md = format_signal_table(signals)
-    news_excerpts_md = format_news_excerpts(news_items)
-    user_prompt = build_regime_user_prompt(signal_table_md, news_excerpts_md, portfolio_summary_md)
-
-    response = client.models.generate_content(
-        model=settings.gemini_model,
-        contents=user_prompt,
-        config=types.GenerateContentConfig(
-            system_instruction=REGIME_SYSTEM_PROMPT,
-            response_mime_type="application/json",
-            response_schema=RegimeReport,
-        ),
+    data = call_proxy(
+        "/v1/regime",
+        {
+            "signal_table_md": format_signal_table(signals),
+            "news_excerpts_md": format_news_excerpts(news_items),
+            "portfolio_summary_md": portfolio_summary_md,
+        },
     )
-    report = response.parsed
-    if report is None:
-        raise ValueError(f"Gemini did not return a schema-conforming response: {response.text!r}")
+    report = RegimeReport.model_validate(data)
 
     db.add(
         RegimeReportRecord(
@@ -85,19 +69,14 @@ def generate_alert_explanation(
     severity: str,
     news_items: list[NewsItem],
 ) -> AlertExplanation:
-    client = get_client()
-    news_excerpts_md = format_news_excerpts(news_items, limit=4)
-    user_prompt = build_alert_user_prompt(rule_id, signal_name, value, severity, news_excerpts_md)
-
-    response = client.models.generate_content(
-        model=settings.gemini_model,
-        contents=user_prompt,
-        config=types.GenerateContentConfig(
-            system_instruction=ALERT_SYSTEM_PROMPT,
-            response_mime_type="application/json",
-            response_schema=AlertExplanation,
-        ),
+    data = call_proxy(
+        "/v1/alert-explanation",
+        {
+            "rule_id": rule_id,
+            "signal_name": signal_name,
+            "value": value,
+            "severity": severity,
+            "news_excerpts_md": format_news_excerpts(news_items, limit=4),
+        },
     )
-    if response.parsed is None:
-        raise ValueError(f"Gemini did not return a schema-conforming response: {response.text!r}")
-    return response.parsed
+    return AlertExplanation.model_validate(data)

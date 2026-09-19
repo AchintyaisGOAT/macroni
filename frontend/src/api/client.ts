@@ -95,8 +95,6 @@ export interface RegimeStatus {
 export interface Status {
   fred_configured: boolean;
   ai_configured: boolean;
-  ai_provider: string;
-  ai_model: string;
   app_version: string;
   github_repo: string;
   last_regime_status: RegimeStatus;

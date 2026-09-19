@@ -37,6 +37,13 @@ def get_app_version() -> str:
 # update-check (a plain, unauthenticated call to the public GitHub releases API).
 GITHUB_REPO = "AchintyaisGOAT/macroni"
 
+# Hosted AI proxy (Cloud Run) that holds the real Gemini key server-side, so installed
+# copies never need their own Gemini key - see proxy/main.py. APP_SHARED_TOKEN is an
+# app-identifying secret, not a billable credential: worst case if it leaks, someone
+# can call this rate-limited proxy, not run up unbounded charges on a raw Gemini key.
+PROXY_URL = "https://macroni-proxy-205601099171.us-central1.run.app"
+APP_SHARED_TOKEN = "mN5tvJ95BOIkboEY-yNl7qIPIKbH5C6eTLySdRijgBg"
+
 
 def _default_database_path() -> str:
     if _is_frozen():
@@ -49,9 +56,6 @@ def _default_database_path() -> str:
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=str(_app_dir() / ".env"), extra="ignore")
-
-    gemini_api_key: str = ""
-    gemini_model: str = "gemini-3.6-flash"
 
     fred_api_key: str = ""
 
@@ -67,10 +71,6 @@ class Settings(BaseSettings):
     @property
     def database_url(self) -> str:
         return f"sqlite:///{self.database_path}"
-
-    @property
-    def has_gemini_key(self) -> bool:
-        return bool(self.gemini_api_key)
 
     @property
     def has_fred_key(self) -> bool:

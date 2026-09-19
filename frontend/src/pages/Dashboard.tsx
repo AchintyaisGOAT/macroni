@@ -53,7 +53,6 @@ export function Dashboard() {
         status={status?.last_regime_status ?? null}
         onRefresh={handleRefreshRegime}
         refreshing={refreshing}
-        aiConfigured={status?.ai_configured ?? false}
       />
 
       {status && !status.fred_configured && (

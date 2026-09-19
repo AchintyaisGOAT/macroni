@@ -1,4 +1,5 @@
 .env
+desktop/.env.dist
 .venv/
 __pycache__/
 *.pyc

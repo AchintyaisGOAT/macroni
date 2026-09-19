@@ -1,9 +1,8 @@
 import logging
 
+import requests
 from apscheduler.schedulers.background import BackgroundScheduler
-from google.genai import errors as genai_errors
 
-from app.ai.client import GeminiNotConfigured
 from app.ai.interpreter import generate_regime_report
 from app.alerts.explainer import explain_new_alerts
 from app.alerts.rule_engine import evaluate_rules
@@ -88,11 +87,6 @@ def refresh_news() -> None:
 def refresh_regime_report() -> dict:
     global _last_regime_status
 
-    if not settings.has_gemini_key:
-        logger.info("GEMINI_API_KEY not configured; skipping regime report generation")
-        _last_regime_status = {"status": "skipped", "reason": "GEMINI_API_KEY not configured"}
-        return _last_regime_status
-
     db = SessionLocal()
     try:
         signals = latest_snapshot(db)
@@ -102,17 +96,18 @@ def refresh_regime_report() -> dict:
         generate_regime_report(db, signals, news_items, portfolio_summary_md)
         logger.info("regime report generated")
         _last_regime_status = {"status": "ok", "reason": None}
-    except GeminiNotConfigured:
-        logger.info("Gemini client not configured; skipping regime report")
-        _last_regime_status = {"status": "skipped", "reason": "GEMINI_API_KEY not configured"}
-    except genai_errors.APIError as exc:
-        logger.exception("regime report generation failed (Gemini API error)")
-        message = (
-            exc.response_json.get("error", {}).get("message")
-            if isinstance(exc.response_json, dict)
-            else str(exc)
-        )
-        _last_regime_status = {"status": "error", "reason": message or str(exc)}
+    except requests.HTTPError as exc:
+        logger.exception("regime report generation failed (proxy returned an error)")
+        try:
+            message = exc.response.json().get("detail", exc.response.text)
+        except Exception:
+            message = str(exc)
+        if exc.response is not None and exc.response.status_code == 429:
+            message = "Daily AI usage cap reached - try again tomorrow."
+        _last_regime_status = {"status": "error", "reason": message}
+    except requests.RequestException as exc:
+        logger.exception("regime report generation failed (could not reach AI proxy)")
+        _last_regime_status = {"status": "error", "reason": f"Could not reach the AI service: {exc}"}
     except Exception as exc:
         logger.exception("regime report generation failed")
         _last_regime_status = {"status": "error", "reason": str(exc)}

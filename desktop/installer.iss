@@ -38,9 +38,11 @@ Name: "desktopicon"; Description: "Create a desktop icon"; GroupDescription: "Ad
 [Files]
 ; Excludes: ".env" is critical - the dev's real API keys live in that file during local
 ; testing/builds, and must never be bundled into an installer that goes to anyone else.
-; A blank template ships instead, below, so the friend has something to edit.
+; .env.dist ships instead (gitignored, not the public repo's blank .env.example) -
+; it carries a real FRED key (free/non-billable, safe to embed) so the app works with
+; zero setup. Gemini calls go through the hosted proxy and need no local key at all.
 Source: "{#MyAppSourceDir}\*"; DestDir: "{app}"; Excludes: ".env"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\.env.example"; DestDir: "{app}"; DestName: ".env"; Flags: onlyifdoesntexist
+Source: "..\desktop\.env.dist"; DestDir: "{app}"; DestName: ".env"; Flags: onlyifdoesntexist
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
