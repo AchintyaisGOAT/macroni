@@ -1,0 +1,38 @@
+# Alert thresholds evaluated against the latest computed signal snapshot.
+# field: which SignalSnapshot column to compare (value | zscore | percentile)
+# operator: one of <, <=, >, >=, ==, !=
+rules:
+  - id: yield_curve_inversion
+    signal: yield_curve_slope
+    field: value
+    operator: "<"
+    threshold: 0
+    severity: high
+
+  - id: vix_regime_shift
+    signal: equity_vol_regime
+    field: percentile
+    operator: ">"
+    threshold: 0.90
+    severity: medium
+
+  - id: credit_stress
+    signal: credit_spread_momentum
+    field: zscore
+    operator: "<"
+    threshold: -1.5
+    severity: high
+
+  - id: portfolio_beta_high
+    signal: portfolio_beta_exposure
+    field: value
+    operator: ">"
+    threshold: 0.85
+    severity: medium
+
+  - id: unfavorable_macro_mix
+    signal: macro_surprise_composite
+    field: zscore
+    operator: "<"
+    threshold: -1.0
+    severity: medium
