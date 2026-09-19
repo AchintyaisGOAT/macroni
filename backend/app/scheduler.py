@@ -3,7 +3,7 @@ import logging
 import requests
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from app.ai.interpreter import generate_regime_report
+from app.ai.interpreter import generate_investment_tips, generate_regime_report
 from app.alerts.explainer import explain_new_alerts
 from app.alerts.rule_engine import evaluate_rules
 from app.config import settings
@@ -117,6 +117,45 @@ def refresh_regime_report() -> dict:
     return _last_regime_status
 
 
+_last_tips_status: dict = {"status": "never_run", "reason": None}
+
+
+def get_last_tips_status() -> dict:
+    return _last_tips_status
+
+
+def refresh_investment_tips() -> dict:
+    global _last_tips_status
+
+    db = SessionLocal()
+    try:
+        signals = latest_snapshot(db)
+        exposure = compute_portfolio_exposures(db)
+        portfolio_summary_md = format_exposure_summary_md(exposure)
+        generate_investment_tips(db, signals, portfolio_summary_md)
+        logger.info("investment tips generated")
+        _last_tips_status = {"status": "ok", "reason": None}
+    except requests.HTTPError as exc:
+        logger.exception("investment tips generation failed (proxy returned an error)")
+        try:
+            message = exc.response.json().get("detail", exc.response.text)
+        except Exception:
+            message = str(exc)
+        if exc.response is not None and exc.response.status_code == 429:
+            message = "Daily AI usage cap reached - try again tomorrow."
+        _last_tips_status = {"status": "error", "reason": message}
+    except requests.RequestException as exc:
+        logger.exception("investment tips generation failed (could not reach AI proxy)")
+        _last_tips_status = {"status": "error", "reason": f"Could not reach the AI service: {exc}"}
+    except Exception as exc:
+        logger.exception("investment tips generation failed")
+        _last_tips_status = {"status": "error", "reason": str(exc)}
+    finally:
+        db.close()
+
+    return _last_tips_status
+
+
 def create_scheduler() -> BackgroundScheduler:
     scheduler = BackgroundScheduler()
     scheduler.add_job(refresh_market_data, "interval", minutes=settings.market_refresh_minutes, id="market_refresh")
@@ -124,6 +163,9 @@ def create_scheduler() -> BackgroundScheduler:
     scheduler.add_job(refresh_news, "interval", minutes=settings.news_refresh_minutes, id="news_refresh")
     scheduler.add_job(
         refresh_regime_report, "interval", minutes=settings.regime_report_minutes, id="regime_report"
+    )
+    scheduler.add_job(
+        refresh_investment_tips, "interval", minutes=settings.regime_report_minutes, id="investment_tips"
     )
     return scheduler
 
@@ -134,3 +176,4 @@ def run_startup_refresh() -> None:
     refresh_fred_data()
     refresh_news()
     refresh_regime_report()
+    refresh_investment_tips()

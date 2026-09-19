@@ -32,11 +32,12 @@ export function News() {
         style={{
           background: "var(--surface-1)",
           border: "1px solid var(--border)",
-          borderRadius: 6,
-          padding: "6px 10px",
+          borderRadius: "var(--radius-sm)",
+          padding: "8px 12px",
           color: "var(--text-primary)",
           fontSize: 13,
           width: "fit-content",
+          boxShadow: "var(--shadow-card)",
         }}
       >
         {SOURCES.map((s) => (
@@ -60,9 +61,9 @@ export function News() {
               rel="noreferrer"
               style={{
                 background: "var(--surface-1)",
-                border: "1px solid var(--border)",
-                borderRadius: 6,
-                padding: "10px 14px",
+                borderRadius: "var(--radius-md)",
+                boxShadow: "var(--shadow-card)",
+                padding: "12px 16px",
                 textDecoration: "none",
                 color: "inherit",
                 display: "block",

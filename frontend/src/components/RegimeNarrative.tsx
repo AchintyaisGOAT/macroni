@@ -1,4 +1,5 @@
 import type { RegimeReport, RegimeStatus } from "../api/client";
+import { Card } from "./Card";
 
 const SEVERITY_COLOR: Record<string, string> = {
   low: "var(--status-good)",
@@ -15,18 +16,25 @@ interface RegimeNarrativeProps {
 
 export function RegimeNarrative({ report, status, onRefresh, refreshing }: RegimeNarrativeProps) {
   return (
-    <div
-      style={{
-        background: "var(--surface-1)",
-        border: "1px solid var(--border)",
-        borderRadius: 8,
-        padding: "18px 20px",
-      }}
-    >
+    <Card>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
         <div>
-          <div style={{ fontSize: 12, color: "var(--text-muted)" }}>Macro regime</div>
-          <div style={{ fontSize: 20, fontWeight: 600, marginTop: 2 }}>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: 0.4,
+              textTransform: "uppercase",
+              background: "var(--brand-gradient)",
+              WebkitBackgroundClip: "text",
+              backgroundClip: "text",
+              color: "transparent",
+              display: "inline-block",
+            }}
+          >
+            Macro regime
+          </div>
+          <div style={{ fontSize: 22, fontWeight: 700, marginTop: 4, letterSpacing: -0.3 }}>
             {report?.regime_label ?? "Not generated yet"}
           </div>
         </div>
@@ -34,12 +42,13 @@ export function RegimeNarrative({ report, status, onRefresh, refreshing }: Regim
           onClick={onRefresh}
           disabled={refreshing}
           style={{
-            border: "1px solid var(--border)",
-            background: "transparent",
+            border: "none",
+            background: "var(--page-plane)",
             color: "var(--text-primary)",
-            borderRadius: 6,
-            padding: "6px 12px",
+            borderRadius: "var(--radius-sm)",
+            padding: "7px 14px",
             fontSize: 12,
+            fontWeight: 600,
           }}
         >
           {refreshing ? "Generating..." : "Regenerate"}
@@ -51,7 +60,7 @@ export function RegimeNarrative({ report, status, onRefresh, refreshing }: Regim
           style={{
             marginTop: 12,
             padding: "10px 12px",
-            borderRadius: 6,
+            borderRadius: "var(--radius-sm)",
             border: `1px solid var(--status-critical)`,
             background: "var(--page-plane)",
           }}
@@ -112,6 +121,6 @@ export function RegimeNarrative({ report, status, onRefresh, refreshing }: Regim
           </div>
         </>
       )}
-    </div>
+    </Card>
   );
 }

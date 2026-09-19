@@ -57,9 +57,9 @@ export function UpdateBanner({ currentVersion, githubRepo }: UpdateBannerProps) 
         alignItems: "center",
         gap: 12,
         background: "var(--surface-1)",
-        border: `1px solid var(--series-1)`,
-        borderRadius: 8,
-        padding: "10px 14px",
+        boxShadow: "var(--shadow-card)",
+        borderRadius: "var(--radius-md)",
+        padding: "12px 16px",
         fontSize: 13,
       }}
     >
@@ -67,7 +67,7 @@ export function UpdateBanner({ currentVersion, githubRepo }: UpdateBannerProps) 
         A new version is available: <strong>{release.tag_name}</strong> (you have v{currentVersion})
       </span>
       <span style={{ display: "flex", gap: 12, alignItems: "center", flexShrink: 0 }}>
-        <a href={release.html_url} target="_blank" rel="noreferrer" style={{ color: "var(--series-1)", fontWeight: 600 }}>
+        <a href={release.html_url} target="_blank" rel="noreferrer" style={{ color: "var(--brand-blue)", fontWeight: 700 }}>
           Download update
         </a>
         <button

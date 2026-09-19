@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api, type Exposures, type Holding, type TickerSearchResult } from "../api/client";
+import { Card } from "../components/Card";
 import { CategoryBreakdown } from "../components/CategoryBreakdown";
 import { TickerSearchInput } from "../components/TickerSearchInput";
 
@@ -75,23 +76,16 @@ export function Portfolio() {
   const inputStyle: React.CSSProperties = {
     background: "var(--surface-1)",
     border: "1px solid var(--border)",
-    borderRadius: 6,
-    padding: "6px 10px",
+    borderRadius: "var(--radius-sm)",
+    padding: "8px 12px",
     color: "var(--text-primary)",
     fontSize: 13,
   };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      <div
-        style={{
-          background: "var(--surface-1)",
-          border: "1px solid var(--border)",
-          borderRadius: 8,
-          padding: "16px 18px",
-        }}
-      >
-        <div style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 12 }}>Add holding</div>
+      <Card padding="18px 20px">
+        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 12 }}>Add holding</div>
         <form onSubmit={handleAdd} style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           <TickerSearchInput
             value={ticker}
@@ -112,7 +106,16 @@ export function Portfolio() {
           <input style={inputStyle} placeholder="Region (e.g. US)" value={region} onChange={(e) => setRegion(e.target.value)} />
           <button
             type="submit"
-            style={{ background: "var(--series-1)", color: "#fff", border: "none", borderRadius: 6, padding: "7px 14px", fontSize: 13 }}
+            style={{
+              background: "var(--brand-gradient)",
+              color: "#fff",
+              border: "none",
+              borderRadius: "var(--radius-sm)",
+              padding: "8px 16px",
+              fontSize: 13,
+              fontWeight: 600,
+              boxShadow: "0 4px 14px rgba(236, 72, 153, 0.28)",
+            }}
           >
             Add
           </button>
@@ -129,17 +132,10 @@ export function Portfolio() {
           ticker,quantity,asset_class,region (import replaces all holdings).
         </div>
         {error && <div style={{ color: "var(--status-critical)", fontSize: 12, marginTop: 8 }}>{error}</div>}
-      </div>
+      </Card>
 
-      <div
-        style={{
-          background: "var(--surface-1)",
-          border: "1px solid var(--border)",
-          borderRadius: 8,
-          padding: "16px 18px",
-        }}
-      >
-        <div style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 12 }}>Holdings</div>
+      <Card padding="18px 20px">
+        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 12 }}>Holdings</div>
         {holdings.length === 0 ? (
           <div style={{ color: "var(--text-muted)", fontSize: 13 }}>No holdings yet.</div>
         ) : (
@@ -182,29 +178,29 @@ export function Portfolio() {
             </tbody>
           </table>
         )}
-      </div>
+      </Card>
 
       {exposures && exposures.total_value > 0 && (
         <>
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-            <div style={{ background: "var(--surface-1)", border: "1px solid var(--border)", borderRadius: 8, padding: "14px 18px", flex: 1, minWidth: 200 }}>
+            <Card padding="16px 20px" style={{ flex: 1, minWidth: 200 }}>
               <div style={{ fontSize: 12, color: "var(--text-muted)" }}>Total value</div>
-              <div style={{ fontSize: 22, fontWeight: 600 }}>
+              <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: -0.5 }}>
                 ${exposures.total_value.toLocaleString(undefined, { maximumFractionDigits: 0 })}
               </div>
-            </div>
-            <div style={{ background: "var(--surface-1)", border: "1px solid var(--border)", borderRadius: 8, padding: "14px 18px", flex: 1, minWidth: 200 }}>
+            </Card>
+            <Card padding="16px 20px" style={{ flex: 1, minWidth: 200 }}>
               <div style={{ fontSize: 12, color: "var(--text-muted)" }}>Portfolio beta (vs SPY)</div>
-              <div style={{ fontSize: 22, fontWeight: 600 }}>
+              <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: -0.5 }}>
                 {exposures.portfolio_beta !== null ? exposures.portfolio_beta.toFixed(2) : "n/a"}
               </div>
-            </div>
-            <div style={{ background: "var(--surface-1)", border: "1px solid var(--border)", borderRadius: 8, padding: "14px 18px", flex: 1, minWidth: 200 }}>
+            </Card>
+            <Card padding="16px 20px" style={{ flex: 1, minWidth: 200 }}>
               <div style={{ fontSize: 12, color: "var(--text-muted)" }}>Bond duration (approx.)</div>
-              <div style={{ fontSize: 22, fontWeight: 600 }}>
+              <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: -0.5 }}>
                 {exposures.portfolio_duration_years !== null ? `${exposures.portfolio_duration_years.toFixed(1)}y` : "n/a"}
               </div>
-            </div>
+            </Card>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>

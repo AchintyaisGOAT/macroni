@@ -12,10 +12,10 @@ export function AlertItem({ alert }: { alert: AlertEvent }) {
     <div
       style={{
         background: "var(--surface-1)",
-        border: "1px solid var(--border)",
-        borderLeft: `3px solid ${color}`,
-        borderRadius: 6,
-        padding: "12px 14px",
+        borderLeft: `4px solid ${color}`,
+        borderRadius: "var(--radius-md)",
+        boxShadow: "var(--shadow-card)",
+        padding: "14px 16px",
         opacity: alert.active ? 1 : 0.55,
       }}
     >

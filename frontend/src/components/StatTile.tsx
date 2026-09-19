@@ -1,4 +1,5 @@
 import type { Signal } from "../api/client";
+import { Card } from "./Card";
 import { Sparkline } from "./Sparkline";
 
 interface StatTileProps {
@@ -30,17 +31,7 @@ function formatValue(signal: Signal): string {
 export function StatTile({ signal, history }: StatTileProps) {
   const dotColor = severityColor(signal);
   return (
-    <div
-      style={{
-        background: "var(--surface-1)",
-        border: "1px solid var(--border)",
-        borderRadius: 8,
-        padding: "12px 14px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 6,
-      }}
-    >
+    <Card padding="14px 16px" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
         <span
           aria-hidden
@@ -48,12 +39,12 @@ export function StatTile({ signal, history }: StatTileProps) {
         />
         <span style={{ color: "var(--text-secondary)", fontSize: 12 }}>{formatSignalName(signal.name)}</span>
       </div>
-      <div style={{ fontSize: 22, fontWeight: 600 }}>{formatValue(signal)}</div>
+      <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: -0.5 }}>{formatValue(signal)}</div>
       <div style={{ color: "var(--text-muted)", fontSize: 12 }}>
         {signal.label}
         {signal.zscore !== null ? ` · z=${signal.zscore.toFixed(2)}` : ""}
       </div>
-      <Sparkline data={history} color="var(--series-1)" />
-    </div>
+      <Sparkline data={history} color="var(--brand-blue)" />
+    </Card>
   );
 }

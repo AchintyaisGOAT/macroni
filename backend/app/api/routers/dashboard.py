@@ -8,7 +8,7 @@ from app.config import GITHUB_REPO, get_app_version, settings
 from app.db import get_db
 from app.models.regime import RegimeReportRecord
 from app.models.signals import SignalSnapshot
-from app.scheduler import get_last_regime_status, refresh_regime_report
+from app.scheduler import get_last_regime_status, get_last_tips_status, refresh_regime_report
 from app.signals.engine import latest_snapshot
 
 router = APIRouter(prefix="/api", tags=["dashboard"])
@@ -95,6 +95,7 @@ def get_status():
         "fred_configured": settings.has_fred_key,
         "ai_configured": True,  # AI runs through the hosted proxy - no local key needed
         "last_regime_status": get_last_regime_status(),
+        "last_tips_status": get_last_tips_status(),
         "app_version": get_app_version(),
         "github_repo": GITHUB_REPO,
     }

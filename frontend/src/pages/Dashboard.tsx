@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { api, type RegimeReport, type Signal, type Status } from "../api/client";
+import { api, type InvestmentTip, type RegimeReport, type Signal, type Status } from "../api/client";
+import { InvestmentTips } from "../components/InvestmentTips";
 import { RegimeNarrative } from "../components/RegimeNarrative";
 import { StatTile } from "../components/StatTile";
 
@@ -7,18 +8,21 @@ export function Dashboard() {
   const [signals, setSignals] = useState<Signal[]>([]);
   const [history, setHistory] = useState<Record<string, number[]>>({});
   const [regime, setRegime] = useState<RegimeReport | null>(null);
+  const [tips, setTips] = useState<InvestmentTip[]>([]);
   const [status, setStatus] = useState<Status | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
 
   async function loadAll() {
-    const [signalsData, regimeData, statusData] = await Promise.all([
+    const [signalsData, regimeData, tipsData, statusData] = await Promise.all([
       api.signals(),
       api.regime(),
+      api.tips(),
       api.status(),
     ]);
     setSignals(signalsData);
     setRegime(regimeData);
+    setTips(tipsData.tips);
     setStatus(statusData);
     setLoading(false);
 
@@ -46,14 +50,23 @@ export function Dashboard() {
     }
   }
 
+  async function handleRefreshTips() {
+    const [updated, statusData] = await Promise.all([api.tips(), api.status()]);
+    setTips(updated.tips);
+    setStatus(statusData);
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      <RegimeNarrative
-        report={regime}
-        status={status?.last_regime_status ?? null}
-        onRefresh={handleRefreshRegime}
-        refreshing={refreshing}
-      />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: 20 }}>
+        <RegimeNarrative
+          report={regime}
+          status={status?.last_regime_status ?? null}
+          onRefresh={handleRefreshRegime}
+          refreshing={refreshing}
+        />
+        <InvestmentTips tips={tips} status={status?.last_tips_status ?? null} onRefresh={handleRefreshTips} />
+      </div>
 
       {status && !status.fred_configured && (
         <div style={{ fontSize: 12, color: "var(--text-muted)" }}>

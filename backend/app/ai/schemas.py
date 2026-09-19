@@ -23,3 +23,19 @@ class RegimeReport(BaseModel):
 class AlertExplanation(BaseModel):
     explanation: str = Field(description="One or two plain-English sentences explaining why this alert fired")
     suggested_watch_items: list[str] = Field(default_factory=list)
+
+
+class InvestmentTip(BaseModel):
+    title: str
+    tip: str
+    category: Literal["diversification", "risk", "cost", "other"]
+    severity: Literal["low", "medium", "high"]
+
+
+class InvestmentTipsResponse(BaseModel):
+    tips: list[InvestmentTip] = Field(default_factory=list)
+
+
+class ChatMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str

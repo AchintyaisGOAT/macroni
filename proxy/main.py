@@ -9,7 +9,16 @@ from google import genai
 from google.genai import errors as genai_errors
 from google.genai import types
 
-from schemas import AlertExplanation, AlertRequest, RegimeReport, RegimeRequest
+from schemas import (
+    AlertExplanation,
+    AlertRequest,
+    ChatRequest,
+    ChatResponse,
+    InvestmentTipsResponse,
+    RegimeReport,
+    RegimeRequest,
+    TipsRequest,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("macroni.proxy")
@@ -48,6 +57,36 @@ An automated rule has just fired on one signal. Given the signal's current value
 recent related news (if any), write a short, plain-English explanation of why this likely \
 matters and what related developments the PM might want to watch next. Do not recommend trades. \
 Reason only from the data given."""
+
+TIPS_SYSTEM_PROMPT = """You are a financial educator reviewing a portfolio's composition and the \
+current macro backdrop, both given to you as data.
+
+Rules:
+- Reason ONLY from the data provided. Never invent holdings, numbers, or events not present in \
+the input.
+- Produce general, educational observations about portfolio construction - concentration risk, \
+diversification gaps, duration/rate exposure, sector tilts - not personalized financial advice.
+- NEVER recommend buying or selling a specific security. Frame every tip as "worth considering" \
+or "worth reviewing," never as an instruction.
+- If the portfolio is empty or has too little data to say anything meaningful, return an empty \
+tips list rather than inventing generic filler.
+- Return at most 5 tips, ordered by how much they matter."""
+
+CHAT_SYSTEM_PROMPT = """You are a macro research analyst assisting a portfolio manager in a chat \
+conversation. You are given the current macro/market signals, recent news excerpts, the PM's \
+portfolio, and the conversation so far.
+
+Rules:
+- Answer ONLY from the data provided. Never invent data points, holdings, or events not present \
+in the input. If you don't have enough information to answer, say so plainly.
+- You may be asked hypothetical "what if" questions (e.g. "what if rates rise 1%"). Reason \
+through these qualitatively using the given signals and general macro relationships - never claim \
+to have run a precise numeric simulation you cannot actually perform.
+- This is a research/monitoring aid, NOT financial advice. Do not tell the PM to buy or sell \
+anything - if the question invites a trade recommendation, redirect to the relevant facts/risks \
+instead and note that the decision is theirs.
+- Keep answers conversational and concise - a few sentences to a short paragraph, not a full report.
+- Politely decline questions unrelated to the portfolio/markets/macro topic."""
 
 app = FastAPI(title="MACRONI AI Proxy")
 
@@ -135,3 +174,32 @@ def generate_alert(payload: AlertRequest, x_app_token: str | None = Header(defau
         "Explain this alert."
     )
     return _generate(ALERT_SYSTEM_PROMPT, user_prompt, AlertExplanation)
+
+
+@app.post("/v1/investment-tips", response_model=InvestmentTipsResponse)
+def generate_tips(payload: TipsRequest, x_app_token: str | None = Header(default=None)):
+    _check_auth(x_app_token)
+    _check_rate_limit()
+
+    user_prompt = (
+        f"## Current Signal Snapshot\n{payload.signal_table_md}\n\n"
+        f"## Current Portfolio Exposures\n{payload.portfolio_summary_md}\n\n"
+        "Produce portfolio health tips."
+    )
+    return _generate(TIPS_SYSTEM_PROMPT, user_prompt, InvestmentTipsResponse)
+
+
+@app.post("/v1/chat", response_model=ChatResponse)
+def generate_chat(payload: ChatRequest, x_app_token: str | None = Header(default=None)):
+    _check_auth(x_app_token)
+    _check_rate_limit()
+
+    history_text = "\n".join(f"{m.role.upper()}: {m.content}" for m in payload.history)
+    user_prompt = (
+        f"## Current Signal Snapshot\n{payload.signal_table_md}\n\n"
+        f"## Recent Central Bank / News Excerpts\n{payload.news_excerpts_md}\n\n"
+        f"## Current Portfolio Exposures\n{payload.portfolio_summary_md}\n\n"
+        f"## Conversation so far\n{history_text or '(no previous messages)'}\n\n"
+        f"## New question\n{payload.question}"
+    )
+    return _generate(CHAT_SYSTEM_PROMPT, user_prompt, ChatResponse)

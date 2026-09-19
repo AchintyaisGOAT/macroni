@@ -1,3 +1,5 @@
+import { Card } from "./Card";
+
 const SERIES_COLORS = [
   "var(--series-1)",
   "var(--series-2)",
@@ -19,15 +21,8 @@ export function CategoryBreakdown({ title, data }: CategoryBreakdownProps) {
   const total = entries.reduce((sum, [, v]) => sum + v, 0);
 
   return (
-    <div
-      style={{
-        background: "var(--surface-1)",
-        border: "1px solid var(--border)",
-        borderRadius: 8,
-        padding: "14px 16px",
-      }}
-    >
-      <div style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 10 }}>{title}</div>
+    <Card padding="18px 20px">
+      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 12 }}>{title}</div>
       {entries.length === 0 && <div style={{ color: "var(--text-muted)", fontSize: 13 }}>No data</div>}
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {entries.map(([category, value], i) => {
@@ -67,6 +62,6 @@ export function CategoryBreakdown({ title, data }: CategoryBreakdownProps) {
           );
         })}
       </div>
-    </div>
+    </Card>
   );
 }

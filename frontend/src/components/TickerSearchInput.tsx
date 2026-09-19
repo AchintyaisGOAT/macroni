@@ -49,8 +49,8 @@ export function TickerSearchInput({ value, onChange, onSelect }: TickerSearchInp
         style={{
           background: "var(--surface-1)",
           border: "1px solid var(--border)",
-          borderRadius: 6,
-          padding: "6px 10px",
+          borderRadius: "var(--radius-sm)",
+          padding: "8px 12px",
           color: "var(--text-primary)",
           fontSize: 13,
           width: "100%",
@@ -69,12 +69,11 @@ export function TickerSearchInput({ value, onChange, onSelect }: TickerSearchInp
             right: 0,
             zIndex: 10,
             background: "var(--surface-1)",
-            border: "1px solid var(--border)",
-            borderRadius: 6,
-            marginTop: 4,
+            borderRadius: "var(--radius-md)",
+            marginTop: 6,
             maxHeight: 260,
             overflowY: "auto",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+            boxShadow: "var(--shadow-card-hover)",
           }}
         >
           {loading && (

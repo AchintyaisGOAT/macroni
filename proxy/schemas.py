@@ -37,3 +37,36 @@ class AlertRequest(BaseModel):
     value: float
     severity: str
     news_excerpts_md: str = "No recent news available."
+
+
+class InvestmentTip(BaseModel):
+    title: str = Field(description="Short tip headline, e.g. 'Concentrated in one sector'")
+    tip: str = Field(description="1-3 sentences explaining the observation and what to consider")
+    category: Literal["diversification", "risk", "cost", "other"]
+    severity: Literal["low", "medium", "high"]
+
+
+class InvestmentTipsResponse(BaseModel):
+    tips: list[InvestmentTip] = Field(default_factory=list)
+
+
+class TipsRequest(BaseModel):
+    signal_table_md: str
+    portfolio_summary_md: str = "No portfolio configured."
+
+
+class ChatMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str
+
+
+class ChatRequest(BaseModel):
+    question: str
+    signal_table_md: str
+    news_excerpts_md: str
+    portfolio_summary_md: str = "No portfolio configured."
+    history: list[ChatMessage] = Field(default_factory=list)
+
+
+class ChatResponse(BaseModel):
+    answer: str

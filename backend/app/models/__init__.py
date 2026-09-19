@@ -5,6 +5,7 @@ from app.models.news import NewsItem
 from app.models.portfolio import Holding
 from app.models.regime import RegimeReportRecord
 from app.models.signals import SignalSnapshot
+from app.models.tips import InvestmentTipsRecord
 
 __all__ = [
     "AlertEvent",
@@ -14,4 +15,5 @@ __all__ = [
     "Holding",
     "RegimeReportRecord",
     "SignalSnapshot",
+    "InvestmentTipsRecord",
 ]

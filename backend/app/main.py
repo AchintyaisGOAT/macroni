@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routers import alerts, dashboard, news, portfolio
+from app.api.routers import alerts, chat, dashboard, news, portfolio, tips
 from app.db import init_db
 from app.scheduler import create_scheduler, run_startup_refresh
 
@@ -47,6 +47,8 @@ app.include_router(dashboard.router)
 app.include_router(portfolio.router)
 app.include_router(alerts.router)
 app.include_router(news.router)
+app.include_router(tips.router)
+app.include_router(chat.router)
 
 
 def _frontend_dist_dir() -> Path | None:

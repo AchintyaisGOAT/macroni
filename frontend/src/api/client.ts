@@ -98,6 +98,24 @@ export interface Status {
   app_version: string;
   github_repo: string;
   last_regime_status: RegimeStatus;
+  last_tips_status: RegimeStatus;
+}
+
+export interface InvestmentTip {
+  title: string;
+  tip: string;
+  category: "diversification" | "risk" | "cost" | "other";
+  severity: "low" | "medium" | "high";
+}
+
+export interface TipsResponse {
+  tips: InvestmentTip[];
+  created_at: string | null;
+}
+
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
 }
 
 export interface TickerSearchResult {
@@ -136,4 +154,10 @@ export const api = {
 
   news: (limit = 30, source?: string) =>
     request<NewsItem[]>(`/api/news?limit=${limit}${source ? `&source=${encodeURIComponent(source)}` : ""}`),
+
+  tips: () => request<TipsResponse>("/api/tips"),
+  refreshTips: () => request<RegimeStatus>("/api/tips/refresh", { method: "POST" }),
+
+  chat: (question: string, history: ChatMessage[]) =>
+    request<{ answer: string }>("/api/chat", { method: "POST", body: JSON.stringify({ question, history }) }),
 };

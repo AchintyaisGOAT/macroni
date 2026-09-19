@@ -1,13 +1,24 @@
 :root {
   color-scheme: light;
-  --surface-1: #fcfcfb;
-  --page-plane: #f9f9f7;
-  --text-primary: #0b0b0b;
-  --text-secondary: #52514e;
-  --text-muted: #898781;
-  --gridline: #e1e0d9;
-  --baseline: #c3c2b7;
-  --border: rgba(11, 11, 11, 0.1);
+  --surface-1: #ffffff;
+  --page-plane: #fdf2f8;
+  --text-primary: #171223;
+  --text-secondary: #574f66;
+  --text-muted: #948da3;
+  --gridline: #ece6f0;
+  --baseline: #d8cfe0;
+  --border: rgba(23, 18, 35, 0.08);
+
+  --brand-pink: #ec4899;
+  --brand-blue: #3b82f6;
+  --brand-gradient: linear-gradient(135deg, var(--brand-pink), var(--brand-blue));
+  --page-gradient: radial-gradient(circle at 10% 0%, #fce7f3 0%, transparent 45%),
+    radial-gradient(circle at 90% 0%, #dbeafe 0%, transparent 45%), #fbf8fc;
+  --shadow-card: 0 1px 2px rgba(23, 18, 35, 0.04), 0 8px 24px rgba(23, 18, 35, 0.06);
+  --shadow-card-hover: 0 2px 4px rgba(23, 18, 35, 0.06), 0 12px 32px rgba(23, 18, 35, 0.09);
+  --radius-lg: 18px;
+  --radius-md: 12px;
+  --radius-sm: 8px;
 
   --series-1: #2a78d6; /* blue */
   --series-2: #eb6834; /* orange */
@@ -29,14 +40,22 @@
 @media (prefers-color-scheme: dark) {
   :root:where(:not([data-theme="light"])) {
     color-scheme: dark;
-    --surface-1: #1a1a19;
-    --page-plane: #0d0d0d;
-    --text-primary: #ffffff;
-    --text-secondary: #c3c2b7;
-    --text-muted: #898781;
-    --gridline: #2c2c2a;
-    --baseline: #383835;
-    --border: rgba(255, 255, 255, 0.1);
+    --surface-1: #191621;
+    --page-plane: #0f0d16;
+    --text-primary: #f7f4fb;
+    --text-secondary: #c9c1d6;
+    --text-muted: #8b839c;
+    --gridline: #2c2736;
+    --baseline: #3a3448;
+    --border: rgba(247, 244, 251, 0.08);
+
+    --brand-pink: #f472b6;
+    --brand-blue: #60a5fa;
+    --brand-gradient: linear-gradient(135deg, var(--brand-pink), var(--brand-blue));
+    --page-gradient: radial-gradient(circle at 10% 0%, rgba(244, 114, 182, 0.14) 0%, transparent 45%),
+      radial-gradient(circle at 90% 0%, rgba(96, 165, 250, 0.14) 0%, transparent 45%), #0f0d16;
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    --shadow-card-hover: 0 2px 4px rgba(0, 0, 0, 0.35), 0 12px 32px rgba(0, 0, 0, 0.4);
 
     --series-1: #3987e5;
     --series-2: #d95926;
@@ -58,14 +77,22 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --surface-1: #1a1a19;
-  --page-plane: #0d0d0d;
-  --text-primary: #ffffff;
-  --text-secondary: #c3c2b7;
-  --text-muted: #898781;
-  --gridline: #2c2c2a;
-  --baseline: #383835;
-  --border: rgba(255, 255, 255, 0.1);
+  --surface-1: #191621;
+  --page-plane: #0f0d16;
+  --text-primary: #f7f4fb;
+  --text-secondary: #c9c1d6;
+  --text-muted: #8b839c;
+  --gridline: #2c2736;
+  --baseline: #3a3448;
+  --border: rgba(247, 244, 251, 0.08);
+
+  --brand-pink: #f472b6;
+  --brand-blue: #60a5fa;
+  --brand-gradient: linear-gradient(135deg, var(--brand-pink), var(--brand-blue));
+  --page-gradient: radial-gradient(circle at 10% 0%, rgba(244, 114, 182, 0.14) 0%, transparent 45%),
+    radial-gradient(circle at 90% 0%, rgba(96, 165, 250, 0.14) 0%, transparent 45%), #0f0d16;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-card-hover: 0 2px 4px rgba(0, 0, 0, 0.35), 0 12px 32px rgba(0, 0, 0, 0.4);
 
   --series-1: #3987e5;
   --series-2: #d95926;
@@ -75,6 +102,11 @@
   --series-6: #008300;
   --series-7: #9085e9;
   --series-8: #e66767;
+
+  --status-good: #0ca30c;
+  --status-warning: #fab219;
+  --status-serious: #ec835a;
+  --status-critical: #d03b3b;
 
   --delta-good: #0ca30c;
 }
@@ -91,7 +123,8 @@ body,
 }
 
 body {
-  background: var(--page-plane);
+  background: var(--page-gradient);
+  background-attachment: fixed;
   color: var(--text-primary);
   font-family:
     system-ui,
@@ -102,7 +135,7 @@ body {
 }
 
 a {
-  color: var(--series-1);
+  color: var(--brand-blue);
 }
 
 button {

@@ -4,10 +4,11 @@ import logging
 from sqlalchemy.orm import Session
 
 from app.ai.client import call_proxy
-from app.ai.schemas import AlertExplanation, RegimeReport
+from app.ai.schemas import AlertExplanation, ChatMessage, InvestmentTipsResponse, RegimeReport
 from app.models.news import NewsItem
 from app.models.regime import RegimeReportRecord
 from app.models.signals import SignalSnapshot
+from app.models.tips import InvestmentTipsRecord
 
 logger = logging.getLogger("app.ai.interpreter")
 
@@ -80,3 +81,42 @@ def generate_alert_explanation(
         },
     )
     return AlertExplanation.model_validate(data)
+
+
+def generate_investment_tips(
+    db: Session,
+    signals: list[SignalSnapshot],
+    portfolio_summary_md: str = "No portfolio configured.",
+) -> InvestmentTipsResponse:
+    data = call_proxy(
+        "/v1/investment-tips",
+        {
+            "signal_table_md": format_signal_table(signals),
+            "portfolio_summary_md": portfolio_summary_md,
+        },
+    )
+    tips = InvestmentTipsResponse.model_validate(data)
+
+    db.add(InvestmentTipsRecord(tips_json=json.dumps([t.model_dump() for t in tips.tips])))
+    db.commit()
+    return tips
+
+
+def generate_chat_response(
+    question: str,
+    history: list[ChatMessage],
+    signals: list[SignalSnapshot],
+    news_items: list[NewsItem],
+    portfolio_summary_md: str = "No portfolio configured.",
+) -> str:
+    data = call_proxy(
+        "/v1/chat",
+        {
+            "question": question,
+            "signal_table_md": format_signal_table(signals),
+            "news_excerpts_md": format_news_excerpts(news_items),
+            "portfolio_summary_md": portfolio_summary_md,
+            "history": [m.model_dump() for m in history],
+        },
+    )
+    return data["answer"]
