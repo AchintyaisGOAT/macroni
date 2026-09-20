@@ -8,6 +8,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(SPEC), ".."))
 BACKEND_DIR = os.path.join(PROJECT_ROOT, "backend")
 FRONTEND_DIST = os.path.join(PROJECT_ROOT, "frontend", "dist")
 ALERT_RULES = os.path.join(BACKEND_DIR, "app", "alerts", "rules.yaml")
+APP_ICON = os.path.join(PROJECT_ROOT, "desktop", "assets", "icon.ico")
 
 a = Analysis(
     [os.path.join(PROJECT_ROOT, "desktop", "launcher.py")],
@@ -54,6 +55,7 @@ exe = EXE(
     strip=False,
     upx=False,
     console=False,
+    icon=APP_ICON,
 )
 
 coll = COLLECT(
