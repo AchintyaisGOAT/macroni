@@ -8,7 +8,7 @@ from app.config import GITHUB_REPO, get_app_version, settings
 from app.db import get_db
 from app.models.regime import RegimeReportRecord
 from app.models.signals import SignalSnapshot
-from app.scheduler import get_last_regime_status, get_last_tips_status, refresh_regime_report
+from app.scheduler import get_last_regime_status, get_last_tips_status, manual_refresh, refresh_regime_report
 from app.signals.engine import latest_snapshot
 
 router = APIRouter(prefix="/api", tags=["dashboard"])
@@ -90,12 +90,20 @@ def post_regime_refresh():
 
 
 @router.get("/status")
-def get_status():
+def get_status(db: Session = Depends(get_db)):
+    signals = latest_snapshot(db)
+    last_updated = max((s.computed_at for s in signals), default=None)
     return {
         "fred_configured": settings.has_fred_key,
         "ai_configured": True,  # AI runs through the hosted proxy - no local key needed
         "last_regime_status": get_last_regime_status(),
         "last_tips_status": get_last_tips_status(),
+        "last_updated": last_updated.isoformat() if last_updated else None,
         "app_version": get_app_version(),
         "github_repo": GITHUB_REPO,
     }
+
+
+@router.post("/refresh")
+def post_refresh():
+    return manual_refresh()

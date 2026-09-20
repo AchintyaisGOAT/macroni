@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, type InvestmentTip, type RegimeReport, type Signal, type Status } from "../api/client";
+import { FreshnessBar } from "../components/FreshnessBar";
 import { InvestmentTips } from "../components/InvestmentTips";
 import { RegimeNarrative } from "../components/RegimeNarrative";
 import { StatTile } from "../components/StatTile";
@@ -11,6 +12,7 @@ export function Dashboard() {
   const [tips, setTips] = useState<InvestmentTip[]>([]);
   const [status, setStatus] = useState<Status | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [dataRefreshing, setDataRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
 
   async function loadAll() {
@@ -56,8 +58,20 @@ export function Dashboard() {
     setStatus(statusData);
   }
 
+  async function handleDataRefresh() {
+    setDataRefreshing(true);
+    try {
+      await api.refreshData();
+      await loadAll();
+    } finally {
+      setDataRefreshing(false);
+    }
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <FreshnessBar lastUpdated={status?.last_updated ?? null} onRefresh={handleDataRefresh} refreshing={dataRefreshing} />
+
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: 20 }}>
         <RegimeNarrative
           report={regime}

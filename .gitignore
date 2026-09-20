@@ -4,6 +4,8 @@ desktop/.env.dist
 __pycache__/
 *.pyc
 data/*.db
+data/webview/
+logs/
 node_modules/
 frontend/dist/
 desktop/build/

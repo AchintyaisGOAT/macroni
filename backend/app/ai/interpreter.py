@@ -4,11 +4,12 @@ import logging
 from sqlalchemy.orm import Session
 
 from app.ai.client import call_proxy
-from app.ai.schemas import AlertExplanation, ChatMessage, InvestmentTipsResponse, RegimeReport
+from app.ai.schemas import AlertExplanation, ChatMessage, InvestmentTipsResponse, RegimeReport, TradeGuidanceResponse
 from app.models.news import NewsItem
 from app.models.regime import RegimeReportRecord
 from app.models.signals import SignalSnapshot
 from app.models.tips import InvestmentTipsRecord
+from app.models.trade_guidance import TradeGuidanceRecord
 
 logger = logging.getLogger("app.ai.interpreter")
 
@@ -120,3 +121,29 @@ def generate_chat_response(
         },
     )
     return data["answer"]
+
+
+def generate_trade_guidance(
+    db: Session,
+    signals: list[SignalSnapshot],
+    technical_signals_md: str,
+    portfolio_summary_md: str = "No portfolio configured.",
+) -> TradeGuidanceResponse:
+    data = call_proxy(
+        "/v1/trade-guidance",
+        {
+            "signal_table_md": format_signal_table(signals),
+            "technical_signals_md": technical_signals_md,
+            "portfolio_summary_md": portfolio_summary_md,
+        },
+    )
+    result = TradeGuidanceResponse.model_validate(data)
+
+    db.add(
+        TradeGuidanceRecord(
+            calls_json=json.dumps([c.model_dump() for c in result.calls]),
+            overall_note=result.overall_note,
+        )
+    )
+    db.commit()
+    return result

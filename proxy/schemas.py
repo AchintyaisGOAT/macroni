@@ -70,3 +70,28 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     answer: str
+
+
+class TradeCall(BaseModel):
+    ticker: str = Field(description="Equity ticker exactly as given in the technical signals input")
+    call: Literal["strong_buy", "buy", "hold", "sell", "strong_sell"]
+    confidence: Literal["low", "medium", "high"] = Field(
+        description="How much the technical and macro signals agree for this ticker - disagreement means lower confidence"
+    )
+    rationale: str = Field(description="2-4 sentences citing the specific technical/macro numbers used")
+
+
+class TradeGuidanceResponse(BaseModel):
+    calls: list[TradeCall] = Field(default_factory=list)
+    overall_note: str = Field(default="", description="1-2 sentence portfolio-level takeaway, if any")
+
+
+class TradeGuidanceRequest(BaseModel):
+    signal_table_md: str
+    technical_signals_md: str
+    portfolio_summary_md: str = "No portfolio configured."
+
+
+class SupportRequest(BaseModel):
+    sender_email: str
+    message: str

@@ -156,6 +156,17 @@ def refresh_investment_tips() -> dict:
     return _last_tips_status
 
 
+def manual_refresh() -> dict:
+    """User-triggered immediate refresh (the dashboard's "Refresh now" button) - on
+    top of the scheduled background jobs, for right after the app was closed for a
+    while and reopened, since this in-process scheduler only runs while the app is.
+    """
+    refresh_market_data()
+    if settings.has_fred_key:
+        refresh_fred_data()
+    return {"status": "ok"}
+
+
 def create_scheduler() -> BackgroundScheduler:
     scheduler = BackgroundScheduler()
     scheduler.add_job(refresh_market_data, "interval", minutes=settings.market_refresh_minutes, id="market_refresh")

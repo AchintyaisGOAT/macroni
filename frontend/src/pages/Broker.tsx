@@ -1,0 +1,288 @@
+import { useEffect, useState } from "react";
+import { api, type BrokerHolding, type BrokerStatus, type SyncResult } from "../api/client";
+import { Card } from "../components/Card";
+
+function extractErrorDetail(err: unknown): string {
+  const message = String(err instanceof Error ? err.message : err);
+  const jsonStart = message.indexOf("{");
+  if (jsonStart === -1) return message;
+  try {
+    const parsed = JSON.parse(message.slice(jsonStart));
+    if (typeof parsed.detail === "string") return parsed.detail;
+  } catch {
+    // fall through to raw message
+  }
+  return message;
+}
+
+const inputStyle: React.CSSProperties = {
+  background: "var(--surface-1)",
+  border: "1px solid var(--border)",
+  borderRadius: "var(--radius-sm)",
+  padding: "8px 12px",
+  color: "var(--text-primary)",
+  fontSize: 13,
+};
+
+const labelStyle: React.CSSProperties = {
+  fontSize: 12,
+  color: "var(--text-secondary)",
+  fontWeight: 600,
+  marginBottom: 4,
+  display: "block",
+};
+
+export function Broker() {
+  const [status, setStatus] = useState<BrokerStatus | null>(null);
+  const [holdings, setHoldings] = useState<BrokerHolding[] | null>(null);
+  const [holdingsLoading, setHoldingsLoading] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [apiKey, setApiKey] = useState("");
+  const [clientCode, setClientCode] = useState("");
+  const [mpin, setMpin] = useState("");
+  const [totpSecret, setTotpSecret] = useState("");
+  const [connecting, setConnecting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
+
+  async function refreshStatus(): Promise<BrokerStatus> {
+    const s = await api.brokerStatus();
+    setStatus(s);
+    return s;
+  }
+
+  // Credentials are saved once to the local .env; every later call to this just
+  // re-derives a fresh TOTP code from that saved secret and re-logs in - the user
+  // never needs to retype anything after the first connect.
+  async function loadHoldings() {
+    setHoldingsLoading(true);
+    setError(null);
+    try {
+      const h = await api.brokerHoldings();
+      setHoldings(h);
+      await refreshStatus();
+    } catch (err) {
+      setError(extractErrorDetail(err));
+    } finally {
+      setHoldingsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const s = await refreshStatus();
+        setShowForm(!s.configured);
+        if (s.configured) {
+          await loadHoldings();
+        }
+      } catch (err) {
+        setError(extractErrorDetail(err));
+      }
+    })();
+  }, []);
+
+  async function handleConnect(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setConnecting(true);
+    try {
+      await api.saveBrokerCredentials({
+        api_key: apiKey,
+        client_code: clientCode,
+        mpin,
+        totp_secret: totpSecret,
+      });
+      setApiKey("");
+      setClientCode("");
+      setMpin("");
+      setTotpSecret("");
+      setShowForm(false);
+      await loadHoldings();
+    } catch (err) {
+      setError(extractErrorDetail(err));
+    } finally {
+      setConnecting(false);
+    }
+  }
+
+  async function handleSync() {
+    setError(null);
+    setSyncResult(null);
+    setSyncing(true);
+    try {
+      const result = await api.syncBrokerToPortfolio();
+      setSyncResult(result);
+    } catch (err) {
+      setError(extractErrorDetail(err));
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <Card padding="18px 20px">
+        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 6 }}>
+          Broker connection · Angel One
+        </div>
+        <p style={{ fontSize: 12.5, color: "var(--text-muted)", lineHeight: 1.6, marginBottom: 12 }}>
+          Read-only. MACRONI can view your holdings, positions, and funds to give you AI guidance - it can never
+          place, modify, or cancel an order. Your credentials stay on this computer and talk directly to Angel
+          One's servers; they are never sent to the AI proxy. They're stored in plaintext in this app's local
+          config file, the same way a trading terminal remembers your login.
+        </p>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+          <span
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              background: status?.connected
+                ? "var(--status-good)"
+                : status?.configured
+                  ? "var(--status-warning)"
+                  : "var(--text-muted)",
+            }}
+          />
+          <span style={{ fontSize: 13, fontWeight: 600 }}>
+            {status?.connected
+              ? `Connected as ${status.client_code}`
+              : status?.configured
+                ? "Credentials saved, not yet connected"
+                : "Not connected"}
+          </span>
+        </div>
+      </Card>
+
+      {showForm ? (
+        <Card padding="18px 20px">
+          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 12 }}>
+            {status?.configured ? "Update credentials" : "Connect your account"}
+          </div>
+          <form onSubmit={handleConnect} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
+            <div>
+              <label style={labelStyle}>API key</label>
+              <input style={{ ...inputStyle, width: "100%" }} type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} />
+            </div>
+            <div>
+              <label style={labelStyle}>Client code</label>
+              <input style={{ ...inputStyle, width: "100%" }} value={clientCode} onChange={(e) => setClientCode(e.target.value)} />
+            </div>
+            <div>
+              <label style={labelStyle}>MPIN</label>
+              <input style={{ ...inputStyle, width: "100%" }} type="password" value={mpin} onChange={(e) => setMpin(e.target.value)} />
+            </div>
+            <div>
+              <label style={labelStyle}>TOTP secret</label>
+              <input style={{ ...inputStyle, width: "100%" }} type="password" value={totpSecret} onChange={(e) => setTotpSecret(e.target.value)} />
+            </div>
+            <div style={{ gridColumn: "1 / -1", display: "flex", gap: 10, alignItems: "center" }}>
+              <button
+                type="submit"
+                disabled={connecting || !apiKey || !clientCode || !mpin || !totpSecret}
+                style={{
+                  background: "var(--brand-gradient)",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "var(--radius-sm)",
+                  padding: "9px 18px",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  boxShadow: "0 4px 14px rgba(236, 72, 153, 0.28)",
+                }}
+              >
+                {connecting ? "Connecting..." : "Connect"}
+              </button>
+              {status?.configured && (
+                <button
+                  type="button"
+                  onClick={() => setShowForm(false)}
+                  style={{ background: "transparent", border: "none", color: "var(--text-muted)", fontSize: 12.5 }}
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+          </form>
+          <p style={{ fontSize: 11.5, color: "var(--text-muted)", marginTop: 10, lineHeight: 1.5 }}>
+            The TOTP secret is the base32 key shown once when you enable TOTP login at smartapi.angelbroking.com -
+            not the 6-digit code itself. MACRONI generates fresh codes from it on every login, so you only enter
+            these once - the app reconnects automatically every time it opens.
+          </p>
+          {error && <div style={{ color: "var(--status-critical)", fontSize: 12, marginTop: 10 }}>{error}</div>}
+        </Card>
+      ) : (
+        <Card padding="14px 20px">
+          <button
+            onClick={() => setShowForm(true)}
+            style={{ background: "transparent", border: "none", color: "var(--text-secondary)", fontSize: 12.5, fontWeight: 600 }}
+          >
+            Update credentials
+          </button>
+          {error && <div style={{ color: "var(--status-critical)", fontSize: 12, marginTop: 10 }}>{error}</div>}
+        </Card>
+      )}
+
+      {status?.configured && (
+        <Card padding="18px 20px">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-secondary)" }}>Live holdings</div>
+            <button
+              onClick={handleSync}
+              disabled={syncing || !holdings || holdings.length === 0}
+              style={{
+                background: "var(--brand-gradient)",
+                color: "#fff",
+                border: "none",
+                borderRadius: "var(--radius-sm)",
+                padding: "8px 16px",
+                fontSize: 12.5,
+                fontWeight: 600,
+                boxShadow: "0 4px 14px rgba(236, 72, 153, 0.28)",
+              }}
+            >
+              {syncing ? "Syncing..." : "Sync to Portfolio"}
+            </button>
+          </div>
+          {syncResult && (
+            <div style={{ fontSize: 12, color: "var(--status-good)", marginBottom: 10 }}>
+              Synced {syncResult.synced} holding{syncResult.synced === 1 ? "" : "s"} to your Portfolio.
+              {syncResult.unmapped.length > 0 &&
+                ` ${syncResult.unmapped.length} position(s) couldn't be mapped to a ticker (F&O/other) and were skipped.`}
+            </div>
+          )}
+          {holdingsLoading ? (
+            <div style={{ color: "var(--text-muted)", fontSize: 13 }}>Connecting to Angel One...</div>
+          ) : !holdings || holdings.length === 0 ? (
+            <div style={{ color: "var(--text-muted)", fontSize: 13 }}>No holdings found in your Angel One account.</div>
+          ) : (
+            <table style={{ fontSize: 13, width: "100%" }}>
+              <thead>
+                <tr style={{ textAlign: "left", color: "var(--text-muted)", fontSize: 12 }}>
+                  <th style={{ paddingBottom: 6 }}>Symbol</th>
+                  <th>Exchange</th>
+                  <th>Quantity</th>
+                  <th>Avg. price</th>
+                  <th>LTP</th>
+                </tr>
+              </thead>
+              <tbody>
+                {holdings.map((h, i) => (
+                  <tr key={i} style={{ borderTop: "1px solid var(--gridline)" }}>
+                    <td style={{ padding: "6px 0" }}>{h.tradingsymbol}</td>
+                    <td>{h.exchange}</td>
+                    <td>{h.quantity}</td>
+                    <td>{h.averageprice}</td>
+                    <td>{h.ltp}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </Card>
+      )}
+    </div>
+  );
+}

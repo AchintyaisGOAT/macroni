@@ -1,8 +1,11 @@
 import logging
 import os
+import re
+import smtplib
 import threading
 import time
 from datetime import date
+from email.mime.text import MIMEText
 
 from fastapi import FastAPI, Header, HTTPException
 from google import genai
@@ -17,7 +20,10 @@ from schemas import (
     InvestmentTipsResponse,
     RegimeReport,
     RegimeRequest,
+    SupportRequest,
     TipsRequest,
+    TradeGuidanceRequest,
+    TradeGuidanceResponse,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -26,6 +32,14 @@ logger = logging.getLogger("macroni.proxy")
 APP_SHARED_TOKEN = os.environ["APP_SHARED_TOKEN"]
 GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
+
+# Support/feedback form - optional, absent until configured. Sends via the
+# developer's own Gmail account (an App Password, not the real account password)
+# so installed copies never need any email setup of their own.
+SUPPORT_TO_EMAIL = os.environ.get("SUPPORT_TO_EMAIL", "")
+SUPPORT_SMTP_EMAIL = os.environ.get("SUPPORT_SMTP_EMAIL", "")
+SUPPORT_SMTP_APP_PASSWORD = os.environ.get("SUPPORT_SMTP_APP_PASSWORD", "")
+_EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 
 # Soft, in-memory daily cap - resets on cold start/redeploy, so this is a secondary
 # safety net, not the authoritative one. Set a real budget alert / quota on the
@@ -87,6 +101,24 @@ anything - if the question invites a trade recommendation, redirect to the relev
 instead and note that the decision is theirs.
 - Keep answers conversational and concise - a few sentences to a short paragraph, not a full report.
 - Politely decline questions unrelated to the portfolio/markets/macro topic."""
+
+TRADE_GUIDANCE_SYSTEM_PROMPT = """You are a markets analyst giving a portfolio holder direct, opinionated \
+buy/hold/sell calls on their current equity holdings, using ONLY the per-holding technical signals, the \
+macro signal snapshot, and the portfolio data given to you.
+
+Rules:
+- Reason ONLY from the data provided. Never invent price levels, news, or events not present in the input.
+- For every ticker listed in the technical signals section, output exactly one call: strong_buy, buy, \
+hold, sell, or strong_sell. Base it primarily on that ticker's own technical score/zone, then adjust for \
+the broader macro regime (e.g. a technically "buy zone" stock in a stressed, risk-off macro backdrop \
+might get downgraded to "hold" rather than "buy").
+- Set confidence (low/medium/high) based on how much the technical and macro signals agree for that \
+ticker - genuine disagreement between them means lower confidence, not a forced compromise.
+- Justify every call in the rationale using the SPECIFIC numbers you were given (the RSI value, the \
+momentum z-score, the trend direction, the relevant macro signal) - never a vague or generic justification.
+- This is a data-driven opinion about the current snapshot, not a guarantee about future price moves - \
+do not claim certainty, and do not reference information you were not given.
+- If the technical signals section is empty, return an empty calls list and leave overall_note blank."""
 
 app = FastAPI(title="MACRONI AI Proxy")
 
@@ -203,3 +235,50 @@ def generate_chat(payload: ChatRequest, x_app_token: str | None = Header(default
         f"## New question\n{payload.question}"
     )
     return _generate(CHAT_SYSTEM_PROMPT, user_prompt, ChatResponse)
+
+
+@app.post("/v1/trade-guidance", response_model=TradeGuidanceResponse)
+def generate_trade_guidance(payload: TradeGuidanceRequest, x_app_token: str | None = Header(default=None)):
+    _check_auth(x_app_token)
+    _check_rate_limit()
+
+    user_prompt = (
+        f"## Per-Holding Technical Signals\n{payload.technical_signals_md}\n\n"
+        f"## Current Macro Signal Snapshot\n{payload.signal_table_md}\n\n"
+        f"## Current Portfolio Exposures\n{payload.portfolio_summary_md}\n\n"
+        "Give a buy/hold/sell call for every ticker listed in the technical signals section."
+    )
+    return _generate(TRADE_GUIDANCE_SYSTEM_PROMPT, user_prompt, TradeGuidanceResponse)
+
+
+@app.post("/v1/support")
+def submit_support(payload: SupportRequest, x_app_token: str | None = Header(default=None)):
+    _check_auth(x_app_token)
+    _check_rate_limit()
+
+    if not (SUPPORT_TO_EMAIL and SUPPORT_SMTP_EMAIL and SUPPORT_SMTP_APP_PASSWORD):
+        raise HTTPException(status_code=503, detail="the support inbox isn't configured on the server yet")
+
+    sender_email = payload.sender_email.strip()
+    message = payload.message.strip()
+    if not _EMAIL_RE.match(sender_email) or "\n" in sender_email or "\r" in sender_email:
+        raise HTTPException(status_code=400, detail="please enter a valid email address")
+    if not message:
+        raise HTTPException(status_code=400, detail="message is empty")
+
+    msg = MIMEText(message[:10000])
+    msg["Subject"] = "MACRONI support request"
+    msg["From"] = SUPPORT_SMTP_EMAIL
+    msg["To"] = SUPPORT_TO_EMAIL
+    msg["Reply-To"] = sender_email
+
+    try:
+        with smtplib.SMTP("smtp.gmail.com", 587, timeout=10) as smtp:
+            smtp.starttls()
+            smtp.login(SUPPORT_SMTP_EMAIL, SUPPORT_SMTP_APP_PASSWORD)
+            smtp.send_message(msg)
+    except Exception as exc:
+        logger.exception("failed to send support email")
+        raise HTTPException(status_code=502, detail=f"failed to send email: {exc}") from exc
+
+    return {"status": "sent"}

@@ -26,6 +26,10 @@ def _app_dir() -> Path:
     return BACKEND_DIR.parent
 
 
+def env_file_path() -> Path:
+    return _app_dir() / ".env"
+
+
 def get_app_version() -> str:
     version_file = _app_dir() / "VERSION"
     if version_file.exists():
@@ -55,9 +59,16 @@ def _default_database_path() -> str:
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=str(_app_dir() / ".env"), extra="ignore")
+    model_config = SettingsConfigDict(env_file=str(env_file_path()), extra="ignore")
 
     fred_api_key: str = ""
+
+    # Angel One SmartAPI - optional, read-only broker integration. Stored only in
+    # the local .env, never sent to the Cloud Run AI proxy. See backend/app/broker/.
+    angel_api_key: str = ""
+    angel_client_code: str = ""
+    angel_mpin: str = ""
+    angel_totp_secret: str = ""
 
     database_path: str = _default_database_path()
 
@@ -75,6 +86,10 @@ class Settings(BaseSettings):
     @property
     def has_fred_key(self) -> bool:
         return bool(self.fred_api_key)
+
+    @property
+    def has_angel_credentials(self) -> bool:
+        return bool(self.angel_api_key and self.angel_client_code and self.angel_mpin and self.angel_totp_secret)
 
 
 settings = Settings()

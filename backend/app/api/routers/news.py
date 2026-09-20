@@ -14,6 +14,7 @@ class NewsOut(BaseModel):
     title: str
     link: str
     summary: str
+    image_url: str | None
     published_at: str | None
 
 
@@ -30,6 +31,7 @@ def get_news(db: Session = Depends(get_db), limit: int = 30, source: str | None 
             title=r.title,
             link=r.link,
             summary=r.summary,
+            image_url=r.image_url,
             published_at=r.published_at.isoformat() if r.published_at else None,
         )
         for r in rows

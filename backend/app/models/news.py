@@ -15,6 +15,7 @@ class NewsItem(Base):
     title: Mapped[str] = mapped_column(Text)
     link: Mapped[str] = mapped_column(Text)
     summary: Mapped[str] = mapped_column(Text, default="")
+    image_url: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
     published_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, index=True)
     fetched_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc)

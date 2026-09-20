@@ -39,3 +39,15 @@ class InvestmentTipsResponse(BaseModel):
 class ChatMessage(BaseModel):
     role: Literal["user", "assistant"]
     content: str
+
+
+class TradeCall(BaseModel):
+    ticker: str
+    call: Literal["strong_buy", "buy", "hold", "sell", "strong_sell"]
+    confidence: Literal["low", "medium", "high"]
+    rationale: str
+
+
+class TradeGuidanceResponse(BaseModel):
+    calls: list[TradeCall] = Field(default_factory=list)
+    overall_note: str = ""

@@ -84,6 +84,7 @@ export interface NewsItem {
   title: string;
   link: string;
   summary: string;
+  image_url: string | null;
   published_at: string | null;
 }
 
@@ -99,6 +100,7 @@ export interface Status {
   github_repo: string;
   last_regime_status: RegimeStatus;
   last_tips_status: RegimeStatus;
+  last_updated: string | null;
 }
 
 export interface InvestmentTip {
@@ -126,6 +128,83 @@ export interface TickerSearchResult {
   sector: string | null;
 }
 
+export interface BrokerStatus {
+  configured: boolean;
+  connected: boolean;
+  client_code: string | null;
+}
+
+export interface BrokerCredentials {
+  api_key: string;
+  client_code: string;
+  mpin: string;
+  totp_secret: string;
+}
+
+export interface BrokerHolding {
+  tradingsymbol: string;
+  exchange: string;
+  quantity: number;
+  averageprice: number;
+  ltp: number;
+  [key: string]: unknown;
+}
+
+export interface SyncResult {
+  status: string;
+  synced: number;
+  unmapped: { tradingsymbol: string; exchange: string; quantity: number }[];
+}
+
+export interface TechnicalSignal {
+  ticker: string;
+  price: number;
+  rsi: number | null;
+  sma50: number | null;
+  sma200: number | null;
+  momentum_zscore: number | null;
+  score: number;
+  zone: "strong_sell" | "sell" | "neutral" | "buy" | "strong_buy";
+}
+
+export interface TradeCall {
+  ticker: string;
+  call: "strong_buy" | "buy" | "hold" | "sell" | "strong_sell";
+  confidence: "low" | "medium" | "high";
+  rationale: string;
+}
+
+export interface TradeGuidance {
+  calls: TradeCall[];
+  overall_note: string;
+  disclaimer: string;
+  created_at: string | null;
+}
+
+export interface ExchangeStatus {
+  code: string;
+  name: string;
+  region: string;
+  timezone: string;
+  is_open: boolean;
+  local_time: string;
+  next_change_at: string;
+  next_change_label: "opens" | "closes";
+}
+
+export interface RegionSignal {
+  code: string;
+  name: string;
+  index_ticker: string;
+  index_name: string;
+  price: number;
+  return_1m_pct: number | null;
+  momentum_zscore: number | null;
+  volatility_value: number | null;
+  volatility_label: "elevated" | "normal" | "subdued" | null;
+  volatility_source: "implied" | "realized_percentile" | null;
+}
+
 export const api = {
   status: () => request<Status>("/api/status"),
   signals: () => request<Signal[]>("/api/signals"),
@@ -133,6 +212,7 @@ export const api = {
     request<Signal[]>(`/api/signals/${encodeURIComponent(name)}/history?limit=${limit}`),
   regime: () => request<RegimeReport | null>("/api/regime"),
   refreshRegime: () => request<RegimeStatus>("/api/regime/refresh", { method: "POST" }),
+  refreshData: () => request<{ status: string }>("/api/refresh", { method: "POST" }),
 
   holdings: () => request<Holding[]>("/api/portfolio/holdings"),
   addHolding: (h: Omit<Holding, "id">) =>
@@ -160,4 +240,23 @@ export const api = {
 
   chat: (question: string, history: ChatMessage[]) =>
     request<{ answer: string }>("/api/chat", { method: "POST", body: JSON.stringify({ question, history }) }),
+
+  brokerStatus: () => request<BrokerStatus>("/api/broker/status"),
+  saveBrokerCredentials: (creds: BrokerCredentials) =>
+    request<{ status: string }>("/api/broker/credentials", { method: "POST", body: JSON.stringify(creds) }),
+  brokerHoldings: () => request<BrokerHolding[]>("/api/broker/holdings"),
+  syncBrokerToPortfolio: () => request<SyncResult>("/api/broker/sync-to-portfolio", { method: "POST" }),
+
+  technicalSignals: () => request<TechnicalSignal[]>("/api/trade-guidance/technical-signals"),
+  tradeGuidance: () => request<TradeGuidance>("/api/trade-guidance"),
+  refreshTradeGuidance: () => request<{ status: string }>("/api/trade-guidance/refresh", { method: "POST" }),
+
+  marketHours: () => request<ExchangeStatus[]>("/api/markets/hours"),
+  regionSignals: () => request<RegionSignal[]>("/api/markets/regions"),
+
+  sendSupportMessage: (senderEmail: string, message: string) =>
+    request<{ status: string }>("/api/support", {
+      method: "POST",
+      body: JSON.stringify({ sender_email: senderEmail, message }),
+    }),
 };

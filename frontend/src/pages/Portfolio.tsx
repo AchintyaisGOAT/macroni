@@ -3,6 +3,7 @@ import { api, type Exposures, type Holding, type TickerSearchResult } from "../a
 import { Card } from "../components/Card";
 import { CategoryBreakdown } from "../components/CategoryBreakdown";
 import { TickerSearchInput } from "../components/TickerSearchInput";
+import { TradeGuidancePanel } from "../components/TradeGuidancePanel";
 
 const ASSET_CLASSES = ["equity", "bond", "commodity", "fx", "cash", "other"];
 
@@ -179,6 +180,8 @@ export function Portfolio() {
           </table>
         )}
       </Card>
+
+      <TradeGuidancePanel />
 
       {exposures && exposures.total_value > 0 && (
         <>

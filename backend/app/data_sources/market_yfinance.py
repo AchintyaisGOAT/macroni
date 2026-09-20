@@ -22,6 +22,12 @@ TRACKED_TICKERS = [
     "UUP",  # USD index proxy (ETF, more reliable via yfinance than DX-Y.NYB)
     "GLD",  # gold
     "DBC",  # broad commodities
+    "^NSEI",  # India - Nifty 50
+    "^INDIAVIX",  # India - implied volatility
+    "^N225",  # Japan - Nikkei 225
+    "^FTSE",  # UK - FTSE 100
+    "^HSI",  # Hong Kong - Hang Seng
+    "^GDAXI",  # Germany - DAX
 ]
 
 

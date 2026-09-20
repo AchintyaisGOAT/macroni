@@ -23,7 +23,7 @@ BOND_ETF_DURATION = {
 }
 
 
-def _ensure_price_history(db: Session, ticker: str) -> None:
+def ensure_price_history(db: Session, ticker: str) -> None:
     series = load_price_series(db, ticker)
     if series.empty:
         try:
@@ -79,7 +79,7 @@ def compute_portfolio_exposures(db: Session) -> dict:
         }
 
     for h in holdings:
-        _ensure_price_history(db, h.ticker)
+        ensure_price_history(db, h.ticker)
 
     spy_returns = load_price_series(db, "SPY").dropna().pct_change().dropna()
 

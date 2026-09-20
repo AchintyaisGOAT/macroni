@@ -1,6 +1,8 @@
 import logging
+import re
 from calendar import timegm
 from datetime import datetime, timezone
+from html import unescape
 
 import feedparser
 import requests
@@ -18,7 +20,34 @@ RSS_FEEDS: dict[str, str] = {
     "boe": "https://www.bankofengland.co.uk/rss/news",
     "boj": "https://www.boj.or.jp/en/rss/whatsnew.xml",
     "market_news": "https://www.investing.com/rss/news.rss",
+    "yahoo_finance": "https://finance.yahoo.com/news/rssindex",
+    "marketwatch": "https://feeds.content.dowjones.io/public/rss/mw_topstories",
 }
+
+
+_TAG_RE = re.compile(r"<[^>]+>")
+
+
+def _strip_html(text: str) -> str:
+    """RSS summaries are inconsistently plain-text vs HTML across feeds/providers -
+    never render one raw, so tags don't leak into the UI as literal text and there's
+    no XSS surface if a future feed embeds something like an <img>/<script> tag."""
+    return unescape(_TAG_RE.sub(" ", text)).strip()
+
+
+def _extract_image_url(entry) -> str | None:
+    for item in entry.get("media_content") or []:
+        if item.get("url"):
+            return item["url"]
+    for item in entry.get("media_thumbnail") or []:
+        if item.get("url"):
+            return item["url"]
+    for enclosure in entry.get("enclosures") or []:
+        if str(enclosure.get("type", "")).startswith("image/"):
+            href = enclosure.get("href") or enclosure.get("url")
+            if href:
+                return href
+    return None
 
 
 def _parse_published(entry) -> datetime | None:
@@ -53,7 +82,8 @@ def fetch_feed(source: str, url: str) -> list[dict]:
                 "source": source,
                 "title": entry.get("title", "")[:500],
                 "link": link,
-                "summary": entry.get("summary", "")[:2000],
+                "summary": _strip_html(entry.get("summary", ""))[:2000],
+                "image_url": _extract_image_url(entry),
                 "published_at": _parse_published(entry),
             }
         )

@@ -6,9 +6,10 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routers import alerts, chat, dashboard, news, portfolio, tips
+from app.api.routers import alerts, broker, chat, dashboard, markets, news, portfolio, support, tips, trade_guidance
 from app.db import init_db
 from app.scheduler import create_scheduler, run_startup_refresh
 
@@ -33,6 +34,11 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="MACRONI", lifespan=lifespan)
 
+# Compresses JSON responses over ~1KB (signal history, news with summaries, etc.) -
+# pure win for a local desktop app: same CPU-cheap gzip, meaningfully less to
+# transfer, which matters most on the friend's install running over a slower link.
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
 # Dev mode: Vite dev server (5173) talks to this API (8000) cross-origin.
 # The packaged build serves the frontend from this same FastAPI process, so CORS
 # is irrelevant there but harmless to leave enabled.
@@ -49,6 +55,10 @@ app.include_router(alerts.router)
 app.include_router(news.router)
 app.include_router(tips.router)
 app.include_router(chat.router)
+app.include_router(broker.router)
+app.include_router(trade_guidance.router)
+app.include_router(markets.router)
+app.include_router(support.router)
 
 
 def _frontend_dist_dir() -> Path | None:
