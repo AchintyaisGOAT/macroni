@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -18,6 +19,12 @@ router = APIRouter(prefix="/api/update", tags=["update"])
 
 GITHUB_API_TIMEOUT = 10
 
+# Matches this app's own installer naming (see desktop/installer.iss's
+# OutputBaseFilename) specifically - not just "any .exe attached to the release."
+# A release accidentally carrying some other .exe asset shouldn't make the
+# updater silently download and run it.
+_INSTALLER_ASSET_RE = re.compile(r"^MACRONI-Setup-.*\.exe$", re.IGNORECASE)
+
 
 def _fetch_latest_release() -> dict:
     resp = requests.get(f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest", timeout=GITHUB_API_TIMEOUT)
@@ -26,7 +33,7 @@ def _fetch_latest_release() -> dict:
 
 
 def _find_installer_asset(release: dict) -> dict | None:
-    return next((a for a in release.get("assets", []) if a.get("name", "").endswith(".exe")), None)
+    return next((a for a in release.get("assets", []) if _INSTALLER_ASSET_RE.match(a.get("name", ""))), None)
 
 
 @router.get("/check")
