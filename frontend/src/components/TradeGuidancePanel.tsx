@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, type TechnicalSignal, type TradeGuidance } from "../api/client";
 import { Card } from "../components/Card";
+import { formatPrice } from "../currency";
 
 function extractErrorDetail(err: unknown): string {
   const message = String(err instanceof Error ? err.message : err);
@@ -141,7 +142,7 @@ export function TradeGuidancePanel() {
               return (
                 <tr key={s.ticker} style={{ borderTop: "1px solid var(--gridline)", verticalAlign: "top" }}>
                   <td style={{ padding: "8px 0", fontWeight: 600 }}>{s.ticker}</td>
-                  <td>${s.price.toFixed(2)}</td>
+                  <td>{formatPrice(s.price, s.ticker)}</td>
                   <td>{s.rsi !== null ? s.rsi.toFixed(0) : "-"}</td>
                   <td>
                     <ZoneBadge zone={s.zone} />

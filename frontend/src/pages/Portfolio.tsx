@@ -4,6 +4,7 @@ import { Card } from "../components/Card";
 import { CategoryBreakdown } from "../components/CategoryBreakdown";
 import { TickerSearchInput } from "../components/TickerSearchInput";
 import { TradeGuidancePanel } from "../components/TradeGuidancePanel";
+import { formatPrice, uniformCurrencySymbol } from "../currency";
 
 const ASSET_CLASSES = ["equity", "bond", "commodity", "fx", "cash", "other"];
 
@@ -162,7 +163,7 @@ export function Portfolio() {
                     <td>{h.quantity}</td>
                     <td>{h.asset_class}</td>
                     <td>{h.region}</td>
-                    <td>{detail?.value ? `$${detail.value.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "-"}</td>
+                    <td>{detail?.value ? formatPrice(detail.value, h.ticker, 0) : "-"}</td>
                     <td>{detail?.weight ? `${(detail.weight * 100).toFixed(1)}%` : "-"}</td>
                     <td>{detail?.beta !== null && detail?.beta !== undefined ? detail.beta.toFixed(2) : "-"}</td>
                     <td>
@@ -189,7 +190,15 @@ export function Portfolio() {
             <Card padding="16px 20px" style={{ flex: 1, minWidth: 200 }}>
               <div style={{ fontSize: 12, color: "var(--text-muted)" }}>Total value</div>
               <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: -0.5 }}>
-                ${exposures.total_value.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                {(() => {
+                  const symbol = uniformCurrencySymbol(holdings.map((h) => h.ticker));
+                  const amount = exposures.total_value.toLocaleString(undefined, { maximumFractionDigits: 0 });
+                  // Holdings across different currencies (e.g. a US stock and an Indian
+                  // one) can't be summed into one meaningful total without an FX
+                  // conversion this app doesn't do - flagging that plainly beats
+                  // silently labeling a mixed-currency sum with one wrong symbol.
+                  return symbol ? `${symbol}${amount}` : `${amount} (mixed currencies)`;
+                })()}
               </div>
             </Card>
             <Card padding="16px 20px" style={{ flex: 1, minWidth: 200 }}>

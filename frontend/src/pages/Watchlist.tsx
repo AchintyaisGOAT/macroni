@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, type TradeGuidance, type WatchlistItemT } from "../api/client";
 import { Card } from "../components/Card";
+import { formatPrice } from "../currency";
 
 function extractErrorDetail(err: unknown): string {
   const message = String(err instanceof Error ? err.message : err);
@@ -207,7 +208,7 @@ export function Watchlist() {
                       {item.ticker}
                       {item.name && <div style={{ fontWeight: 400, fontSize: 11.5, color: "var(--text-muted)" }}>{item.name}</div>}
                     </td>
-                    <td>{item.price !== null ? `$${item.price.toFixed(2)}` : "-"}</td>
+                    <td>{item.price !== null ? formatPrice(item.price, item.ticker) : "-"}</td>
                     <td>{item.zone ? <ZoneBadge zone={item.zone} /> : "-"}</td>
                     <td style={{ maxWidth: 320 }}>
                       {call ? (

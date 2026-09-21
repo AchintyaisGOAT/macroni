@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api, type MarketStock, type TickerSearchResult } from "../api/client";
 import { Card } from "../components/Card";
+import { formatPrice } from "../currency";
 
 function extractErrorDetail(err: unknown): string {
   const message = String(err instanceof Error ? err.message : err);
@@ -195,7 +196,7 @@ export function MarketStocks() {
                       <div style={{ fontWeight: 600 }}>{s.ticker}</div>
                       <div style={{ fontSize: 11.5, color: "var(--text-muted)" }}>{s.name}</div>
                     </td>
-                    <td>${s.price.toFixed(2)}</td>
+                    <td>{formatPrice(s.price, s.ticker)}</td>
                     <td style={{ color: changeColor, fontWeight: 600 }}>
                       {s.change_pct !== null ? `${s.change_pct >= 0 ? "+" : ""}${s.change_pct.toFixed(2)}%` : "-"}
                     </td>

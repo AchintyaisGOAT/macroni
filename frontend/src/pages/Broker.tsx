@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { api, type BrokerHolding, type BrokerStatus, type SyncResult } from "../api/client";
 import { Card } from "../components/Card";
 
+// Angel One is India-only, so every holding it returns trades in rupees.
+const RUPEE = "₹";
+
 function extractErrorDetail(err: unknown): string {
   const message = String(err instanceof Error ? err.message : err);
   const jsonStart = message.indexOf("{");
@@ -274,8 +277,8 @@ export function Broker() {
                     <td style={{ padding: "6px 0" }}>{h.tradingsymbol}</td>
                     <td>{h.exchange}</td>
                     <td>{h.quantity}</td>
-                    <td>{h.averageprice}</td>
-                    <td>{h.ltp}</td>
+                    <td>{RUPEE}{h.averageprice}</td>
+                    <td>{RUPEE}{h.ltp}</td>
                   </tr>
                 ))}
               </tbody>
