@@ -7,6 +7,7 @@ from app.models.regime import RegimeReportRecord
 from app.models.signals import SignalSnapshot
 from app.models.tips import InvestmentTipsRecord
 from app.models.trade_guidance import TradeGuidanceRecord
+from app.models.watchlist import WatchlistItem
 
 __all__ = [
     "AlertEvent",
@@ -18,4 +19,5 @@ __all__ = [
     "SignalSnapshot",
     "InvestmentTipsRecord",
     "TradeGuidanceRecord",
+    "WatchlistItem",
 ]

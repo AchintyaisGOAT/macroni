@@ -36,7 +36,12 @@ class TradeGuidanceOut(BaseModel):
 
 @router.get("", response_model=TradeGuidanceOut)
 def get_trade_guidance(db: Session = Depends(get_db)):
-    row = db.query(TradeGuidanceRecord).order_by(TradeGuidanceRecord.created_at.desc()).first()
+    row = (
+        db.query(TradeGuidanceRecord)
+        .filter(TradeGuidanceRecord.scope == "portfolio")
+        .order_by(TradeGuidanceRecord.created_at.desc())
+        .first()
+    )
     if not row:
         return TradeGuidanceOut(calls=[], overall_note="", disclaimer=DISCLAIMER, created_at=None)
     return TradeGuidanceOut(
@@ -67,7 +72,7 @@ def post_trade_guidance_refresh(db: Session = Depends(get_db)):
     technical_signals_md = format_technical_signals_md(technical_signals)
 
     try:
-        generate_trade_guidance(db, signals, technical_signals_md, portfolio_summary_md)
+        generate_trade_guidance(db, signals, technical_signals_md, portfolio_summary_md, scope="portfolio")
     except requests.HTTPError as exc:
         try:
             message = exc.response.json().get("detail", exc.response.text)

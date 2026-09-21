@@ -38,6 +38,7 @@ export function FloatingChatButton() {
     <>
       {open && (
         <div
+          className="macroni-animate-in"
           style={{
             position: "fixed",
             bottom: 92,
@@ -50,6 +51,7 @@ export function FloatingChatButton() {
             borderRadius: "var(--radius-lg)",
             boxShadow: "0 24px 60px rgba(0, 0, 0, 0.3)",
             overflow: "hidden",
+            transformOrigin: "bottom right",
             zIndex: 1000,
           }}
         >

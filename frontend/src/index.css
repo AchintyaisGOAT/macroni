@@ -141,9 +141,56 @@ a {
 button {
   font-family: inherit;
   cursor: pointer;
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.15s ease, opacity 0.15s ease;
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-1px) scale(1.03);
+  filter: brightness(1.06);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(0) scale(0.96);
+  filter: brightness(0.96);
+  transition-duration: 0.05s;
+}
+
+button:disabled {
+  cursor: default;
 }
 
 table {
   border-collapse: collapse;
   width: 100%;
+}
+
+@keyframes macroni-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Every page's root element is a freshly-mounted DOM node on navigation (React
+   Router unmounts the previous route), so this replays automatically on every
+   page change without each page needing to opt in individually. */
+main > * {
+  animation: macroni-pop-in 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.macroni-animate-in {
+  animation: macroni-pop-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button,
+  main > *,
+  .macroni-animate-in {
+    animation: none;
+    transition: none;
+  }
 }

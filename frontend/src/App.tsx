@@ -8,9 +8,11 @@ import { Broker } from "./pages/Broker";
 import { Chat } from "./pages/Chat";
 import { Dashboard } from "./pages/Dashboard";
 import { GlobalMarkets } from "./pages/GlobalMarkets";
+import { MarketStocks } from "./pages/MarketStocks";
 import { News } from "./pages/News";
 import { Portfolio } from "./pages/Portfolio";
 import { Support } from "./pages/Support";
+import { Watchlist } from "./pages/Watchlist";
 import { FloatingChatButton } from "./components/FloatingChatButton";
 import { UpdateBanner } from "./components/UpdateBanner";
 
@@ -24,6 +26,7 @@ function FloatingChatButtonUnlessOnChatPage() {
 const NAV_ITEMS = [
   { to: "/", label: "Dashboard", end: true },
   { to: "/portfolio", label: "Portfolio" },
+  { to: "/watchlist", label: "Watchlist" },
   { to: "/broker", label: "Broker" },
   { to: "/markets", label: "Global Markets" },
   { to: "/chat", label: "Chat" },
@@ -99,8 +102,10 @@ function App() {
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/portfolio" element={<Portfolio />} />
+              <Route path="/watchlist" element={<Watchlist />} />
               <Route path="/broker" element={<Broker />} />
               <Route path="/markets" element={<GlobalMarkets />} />
+              <Route path="/markets/:code/stocks" element={<MarketStocks />} />
               <Route path="/chat" element={<Chat />} />
               <Route path="/alerts" element={<Alerts />} />
               <Route path="/news" element={<News />} />

@@ -128,6 +128,7 @@ def generate_trade_guidance(
     signals: list[SignalSnapshot],
     technical_signals_md: str,
     portfolio_summary_md: str = "No portfolio configured.",
+    scope: str = "portfolio",
 ) -> TradeGuidanceResponse:
     data = call_proxy(
         "/v1/trade-guidance",
@@ -141,6 +142,7 @@ def generate_trade_guidance(
 
     db.add(
         TradeGuidanceRecord(
+            scope=scope,
             calls_json=json.dumps([c.model_dump() for c in result.calls]),
             overall_note=result.overall_note,
         )

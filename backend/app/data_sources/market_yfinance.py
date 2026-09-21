@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.data_sources.base import retry, upsert_rows
 from app.data_sources.market_stooq import fetch_stooq_bars
+from app.markets.constituents import CONSTITUENTS
 from app.models.market_data import PriceBar
 
 logger = logging.getLogger("app.data_sources.market")
@@ -28,7 +29,7 @@ TRACKED_TICKERS = [
     "^FTSE",  # UK - FTSE 100
     "^HSI",  # Hong Kong - Hang Seng
     "^GDAXI",  # Germany - DAX
-]
+] + [stock.ticker for stocks in CONSTITUENTS.values() for stock in stocks]  # Global Markets / Watchlist browsable stocks
 
 
 def _fetch_yfinance_bars(ticker: str, period: str = "2y") -> pd.DataFrame:

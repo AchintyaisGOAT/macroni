@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api, type ExchangeStatus, type RegionSignal } from "../api/client";
 import { Card } from "../components/Card";
 
@@ -66,6 +67,22 @@ function RegionCard({ r }: { r: RegionSignal }) {
             ? `Realized vol percentile (1y): ${r.volatility_value?.toFixed(0)}th`
             : ""}
       </div>
+      <Link
+        to={`/markets/${r.code}/stocks`}
+        style={{
+          display: "inline-block",
+          marginTop: 12,
+          fontSize: 12,
+          fontWeight: 600,
+          color: "var(--text-primary)",
+          textDecoration: "none",
+          borderTop: "1px solid var(--gridline)",
+          paddingTop: 10,
+          width: "100%",
+        }}
+      >
+        Browse stocks &rarr;
+      </Link>
     </Card>
   );
 }

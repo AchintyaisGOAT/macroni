@@ -205,6 +205,27 @@ export interface RegionSignal {
   volatility_source: "implied" | "realized_percentile" | null;
 }
 
+export interface MarketStock {
+  ticker: string;
+  name: string;
+  price: number;
+  change_pct: number | null;
+  zone: "strong_sell" | "sell" | "neutral" | "buy" | "strong_buy" | null;
+  score: number | null;
+}
+
+export interface WatchlistItemT {
+  id: number;
+  ticker: string;
+  name: string;
+  region: string;
+  price: number | null;
+  rsi: number | null;
+  momentum_zscore: number | null;
+  score: number | null;
+  zone: "strong_sell" | "sell" | "neutral" | "buy" | "strong_buy" | null;
+}
+
 export const api = {
   status: () => request<Status>("/api/status"),
   signals: () => request<Signal[]>("/api/signals"),
@@ -253,10 +274,20 @@ export const api = {
 
   marketHours: () => request<ExchangeStatus[]>("/api/markets/hours"),
   regionSignals: () => request<RegionSignal[]>("/api/markets/regions"),
+  marketStocks: (regionCode: string) => request<MarketStock[]>(`/api/markets/${regionCode}/stocks`),
+  searchMarketStocks: (regionCode: string, q: string, limit = 15) =>
+    request<TickerSearchResult[]>(`/api/markets/${regionCode}/search?q=${encodeURIComponent(q)}&limit=${limit}`),
 
   sendSupportMessage: (senderEmail: string, message: string) =>
     request<{ status: string }>("/api/support", {
       method: "POST",
       body: JSON.stringify({ sender_email: senderEmail, message }),
     }),
+
+  watchlist: () => request<WatchlistItemT[]>("/api/watchlist"),
+  addToWatchlist: (ticker: string, name = "", region = "") =>
+    request<WatchlistItemT>("/api/watchlist", { method: "POST", body: JSON.stringify({ ticker, name, region }) }),
+  removeFromWatchlist: (id: number) => request<{ status: string }>(`/api/watchlist/${id}`, { method: "DELETE" }),
+  watchlistGuidance: () => request<TradeGuidance>("/api/watchlist/guidance"),
+  refreshWatchlistGuidance: () => request<{ status: string }>("/api/watchlist/guidance/refresh", { method: "POST" }),
 };

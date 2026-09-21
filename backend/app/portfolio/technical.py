@@ -84,21 +84,25 @@ def compute_technical_signal(prices: pd.Series) -> dict | None:
     }
 
 
-def compute_portfolio_technical_signals(db: Session) -> list[dict]:
-    holdings: list[Holding] = db.query(Holding).filter(Holding.asset_class == "equity").all()
+def compute_technical_signals_for_tickers(db: Session, tickers: list[str]) -> list[dict]:
     results = []
-    for h in holdings:
-        ensure_price_history(db, h.ticker)
-        signal = compute_technical_signal(load_price_series(db, h.ticker))
+    for ticker in tickers:
+        ensure_price_history(db, ticker)
+        signal = compute_technical_signal(load_price_series(db, ticker))
         if signal is None:
             continue
-        results.append({"ticker": h.ticker, **signal})
+        results.append({"ticker": ticker, **signal})
     return results
 
 
-def format_technical_signals_md(signals: list[dict]) -> str:
+def compute_portfolio_technical_signals(db: Session) -> list[dict]:
+    holdings: list[Holding] = db.query(Holding).filter(Holding.asset_class == "equity").all()
+    return compute_technical_signals_for_tickers(db, [h.ticker for h in holdings])
+
+
+def format_technical_signals_md(signals: list[dict], empty_message: str = "No technical signals available.") -> str:
     if not signals:
-        return "No technical signals available (need equity holdings with price history)."
+        return empty_message
     lines = ["Per-holding technical readout (purely quantitative, not AI-generated):", ""]
     for s in signals:
         rsi_str = f"{s['rsi']:.0f}" if s["rsi"] is not None else "n/a"

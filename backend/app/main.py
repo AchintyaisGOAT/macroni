@@ -9,7 +9,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routers import alerts, broker, chat, dashboard, markets, news, portfolio, support, tips, trade_guidance
+from app.api.routers import (
+    alerts,
+    broker,
+    chat,
+    dashboard,
+    markets,
+    news,
+    portfolio,
+    support,
+    tips,
+    trade_guidance,
+    watchlist,
+)
 from app.db import init_db
 from app.scheduler import create_scheduler, run_startup_refresh
 
@@ -59,6 +71,7 @@ app.include_router(broker.router)
 app.include_router(trade_guidance.router)
 app.include_router(markets.router)
 app.include_router(support.router)
+app.include_router(watchlist.router)
 
 
 def _frontend_dist_dir() -> Path | None:

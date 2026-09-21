@@ -47,3 +47,4 @@ def init_db() -> None:
 
     Base.metadata.create_all(bind=engine)
     _ensure_column("news_items", "image_url", "TEXT")
+    _ensure_column("trade_guidance", "scope", "TEXT NOT NULL DEFAULT 'portfolio'")
