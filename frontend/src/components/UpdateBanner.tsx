@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react";
+import { api, type UpdateCheck } from "../api/client";
 
-interface UpdateBannerProps {
-  currentVersion: string;
-  githubRepo: string;
-}
-
-interface GithubRelease {
-  tag_name: string;
-  html_url: string;
-  name: string;
+function extractErrorDetail(err: unknown): string {
+  const message = String(err instanceof Error ? err.message : err);
+  const jsonStart = message.indexOf("{");
+  if (jsonStart === -1) return message;
+  try {
+    const parsed = JSON.parse(message.slice(jsonStart));
+    if (typeof parsed.detail === "string") return parsed.detail;
+  } catch {
+    // fall through to raw message
+  }
+  return message;
 }
 
 function parseVersion(v: string): number[] {
@@ -29,25 +32,43 @@ function isNewer(latest: string, current: string): boolean {
   return false;
 }
 
-export function UpdateBanner({ currentVersion, githubRepo }: UpdateBannerProps) {
-  const [release, setRelease] = useState<GithubRelease | null>(null);
+type InstallState = "idle" | "installing" | "restarting" | "error";
+
+export function UpdateBanner() {
+  const [update, setUpdate] = useState<UpdateCheck | null>(null);
   const [dismissed, setDismissed] = useState(false);
+  const [installState, setInstallState] = useState<InstallState>("idle");
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!githubRepo || githubRepo.startsWith("PLACEHOLDER")) return;
-    fetch(`https://api.github.com/repos/${githubRepo}/releases/latest`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data: GithubRelease | null) => {
-        if (data?.tag_name && isNewer(data.tag_name, currentVersion)) {
-          setRelease(data);
+    api
+      .checkUpdate()
+      .then((data) => {
+        if (data.tag_name && isNewer(data.tag_name, data.current_version)) {
+          setUpdate(data);
         }
       })
       .catch(() => {
         // No network, rate-limited, or repo not found - fail silently, this is a nicety.
       });
-  }, [currentVersion, githubRepo]);
+  }, []);
 
-  if (!release || dismissed) return null;
+  async function handleInstall() {
+    setError(null);
+    setInstallState("installing");
+    try {
+      await api.installUpdate();
+      // The installer's Restart Manager integration closes this app's process to
+      // replace its files, then relaunches it - so losing the connection right
+      // after this succeeds is the expected, normal outcome, not a failure.
+      setInstallState("restarting");
+    } catch (err) {
+      setError(extractErrorDetail(err));
+      setInstallState("error");
+    }
+  }
+
+  if (!update || dismissed) return null;
 
   return (
     <div
@@ -63,19 +84,46 @@ export function UpdateBanner({ currentVersion, githubRepo }: UpdateBannerProps) 
         fontSize: 13,
       }}
     >
-      <span>
-        A new version is available: <strong>{release.tag_name}</strong> (you have v{currentVersion})
-      </span>
+      {installState === "restarting" ? (
+        <span>Update installed - MACRONI is restarting now...</span>
+      ) : (
+        <span>
+          A new version is available: <strong>{update.tag_name}</strong> (you have v{update.current_version})
+          {error && <span style={{ color: "var(--status-critical)", marginLeft: 10 }}>{error}</span>}
+        </span>
+      )}
       <span style={{ display: "flex", gap: 12, alignItems: "center", flexShrink: 0 }}>
-        <a href={release.html_url} target="_blank" rel="noreferrer" style={{ color: "var(--brand-blue)", fontWeight: 700 }}>
-          Download update
-        </a>
-        <button
-          onClick={() => setDismissed(true)}
-          style={{ background: "transparent", border: "none", color: "var(--text-muted)", fontSize: 12 }}
-        >
-          Dismiss
-        </button>
+        {installState !== "restarting" && update.installable && (
+          <button
+            onClick={handleInstall}
+            disabled={installState === "installing"}
+            style={{
+              background: "var(--brand-gradient)",
+              color: "#fff",
+              border: "none",
+              borderRadius: "var(--radius-sm)",
+              padding: "7px 16px",
+              fontSize: 12.5,
+              fontWeight: 700,
+              boxShadow: "0 4px 14px rgba(236, 72, 153, 0.28)",
+            }}
+          >
+            {installState === "installing" ? "Installing..." : "Install & Restart"}
+          </button>
+        )}
+        {installState !== "restarting" && update.html_url && (
+          <a href={update.html_url} target="_blank" rel="noreferrer" style={{ color: "var(--brand-blue)", fontWeight: 700 }}>
+            View on GitHub
+          </a>
+        )}
+        {installState === "idle" && (
+          <button
+            onClick={() => setDismissed(true)}
+            style={{ background: "transparent", border: "none", color: "var(--text-muted)", fontSize: 12 }}
+          >
+            Dismiss
+          </button>
+        )}
       </span>
     </div>
   );

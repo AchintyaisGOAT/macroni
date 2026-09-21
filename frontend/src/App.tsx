@@ -1,6 +1,4 @@
-import { useEffect, useState } from "react";
 import { NavLink, Route, HashRouter as Router, Routes, useLocation } from "react-router-dom";
-import { api, type Status } from "./api/client";
 import { AuthProvider } from "./auth/AuthContext";
 import { Account } from "./pages/Account";
 import { Alerts } from "./pages/Alerts";
@@ -37,12 +35,6 @@ const NAV_ITEMS = [
 ];
 
 function App() {
-  const [status, setStatus] = useState<Status | null>(null);
-
-  useEffect(() => {
-    api.status().then(setStatus).catch(() => {});
-  }, []);
-
   return (
     <AuthProvider>
       <Router>
@@ -94,11 +86,9 @@ function App() {
             ))}
           </nav>
           <main style={{ flex: 1, overflow: "auto", padding: "24px 28px 28px" }}>
-            {status && (
-              <div style={{ marginBottom: 16 }}>
-                <UpdateBanner currentVersion={status.app_version} githubRepo={status.github_repo} />
-              </div>
-            )}
+            <div style={{ marginBottom: 16 }}>
+              <UpdateBanner />
+            </div>
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/portfolio" element={<Portfolio />} />

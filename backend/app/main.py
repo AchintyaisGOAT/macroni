@@ -20,6 +20,7 @@ from app.api.routers import (
     support,
     tips,
     trade_guidance,
+    update,
     watchlist,
 )
 from app.db import init_db
@@ -72,6 +73,7 @@ app.include_router(trade_guidance.router)
 app.include_router(markets.router)
 app.include_router(support.router)
 app.include_router(watchlist.router)
+app.include_router(update.router)
 
 
 def _frontend_dist_dir() -> Path | None:

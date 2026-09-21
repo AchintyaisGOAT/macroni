@@ -29,6 +29,13 @@ SetupIconFile=assets\icon.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
+; Explicit (these are Inno Setup 6's defaults already, but the in-app auto-updater
+; depends on this exact behavior, so it's spelled out rather than left implicit):
+; detect the running MACRONI.exe holding its own files open, close it via Windows
+; Restart Manager so Setup can overwrite them, then relaunch it after - all without
+; the update needing its own [Run] entry, and working even under /VERYSILENT.
+CloseApplications=yes
+RestartApplications=yes
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"

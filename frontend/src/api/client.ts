@@ -226,6 +226,14 @@ export interface WatchlistItemT {
   zone: "strong_sell" | "sell" | "neutral" | "buy" | "strong_buy" | null;
 }
 
+export interface UpdateCheck {
+  current_version: string;
+  tag_name: string | null;
+  html_url: string | null;
+  asset_name: string | null;
+  installable: boolean;
+}
+
 export const api = {
   status: () => request<Status>("/api/status"),
   signals: () => request<Signal[]>("/api/signals"),
@@ -290,4 +298,7 @@ export const api = {
   removeFromWatchlist: (id: number) => request<{ status: string }>(`/api/watchlist/${id}`, { method: "DELETE" }),
   watchlistGuidance: () => request<TradeGuidance>("/api/watchlist/guidance"),
   refreshWatchlistGuidance: () => request<{ status: string }>("/api/watchlist/guidance/refresh", { method: "POST" }),
+
+  checkUpdate: () => request<UpdateCheck>("/api/update/check"),
+  installUpdate: () => request<{ status: string }>("/api/update/install", { method: "POST" }),
 };
