@@ -46,14 +46,17 @@ def check_for_update():
 
 @router.post("/install")
 def install_update():
-    """Download the latest release's installer and run it silently.
+    """Download the latest release's installer, run it silently, then relaunch.
 
-    Only meaningful for an installed (frozen) copy - the installer's Restart
-    Manager integration (CloseApplications/RestartApplications, see
-    desktop/installer.iss) detects this running exe holding its own files open,
-    closes it, replaces the files, then relaunches it - so this endpoint just
-    needs to kick the installer off and return; it doesn't need to orchestrate
-    shutdown/relaunch itself.
+    Only meaningful for an installed (frozen) copy. Inno Setup's own Restart
+    Manager integration (CloseApplications, desktop/installer.iss) reliably closes
+    this running exe so Setup can overwrite its files - verified directly against
+    a real install. Its RestartApplications counterpart, which is supposed to
+    reopen the app afterward, did NOT reliably do so in that same testing for this
+    app - so the relaunch is handled explicitly here instead: a detached helper
+    process waits for the (already-launched, fire-and-forget) installer to fully
+    exit, then starts this exe's own path again. That helper must be detached from
+    this process, since Restart Manager is about to kill this one mid-request.
     """
     if not getattr(sys, "frozen", False):
         raise HTTPException(
@@ -80,9 +83,15 @@ def install_update():
         logger.exception("failed to download update installer")
         raise HTTPException(status_code=502, detail=f"failed to download the update: {exc}") from exc
 
+    exe_path = sys.executable  # this app's own installed path - unchanged after an in-place update
+    relaunch_cmd = (
+        f'"{tmp_path}" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS '
+        f'&& start "" "{exe_path}"'
+    )
     try:
         subprocess.Popen(
-            [str(tmp_path), "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/CLOSEAPPLICATIONS", "/RESTARTAPPLICATIONS"],
+            ["cmd", "/c", relaunch_cmd],
+            creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP,
             close_fds=True,
         )
     except OSError as exc:

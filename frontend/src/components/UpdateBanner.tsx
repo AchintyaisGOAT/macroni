@@ -58,13 +58,21 @@ export function UpdateBanner() {
     setInstallState("installing");
     try {
       await api.installUpdate();
-      // The installer's Restart Manager integration closes this app's process to
-      // replace its files, then relaunches it - so losing the connection right
-      // after this succeeds is the expected, normal outcome, not a failure.
       setInstallState("restarting");
     } catch (err) {
-      setError(extractErrorDetail(err));
-      setInstallState("error");
+      // The backend's own process gets closed (to let the installer overwrite its
+      // files) moments after it kicks off the install - if that happens before the
+      // HTTP response fully arrives, the fetch itself throws a network-level
+      // TypeError ("Failed to fetch"), not a real HTTP error response. That's
+      // actually the expected shape of success here, not a failure - only a
+      // genuine HTTP error status (the server responding on purpose) means it
+      // truly failed before reaching that point.
+      if (err instanceof TypeError) {
+        setInstallState("restarting");
+      } else {
+        setError(extractErrorDetail(err));
+        setInstallState("error");
+      }
     }
   }
 
