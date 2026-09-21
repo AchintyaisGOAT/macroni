@@ -1,7 +1,10 @@
 import logging
+import os
 import subprocess
 import sys
 import tempfile
+import threading
+import time
 from pathlib import Path
 
 import requests
@@ -44,19 +47,37 @@ def check_for_update():
     }
 
 
+def _quit_after_delay(delay: float) -> None:
+    """Give the HTTP response time to reach the frontend, then hard-exit this
+    entire process (backend + the pywebview GUI both live in it - see
+    desktop/launcher.py) so its exe/DLL file handles are released deterministically,
+    on our own schedule, rather than depending on the installer to force it closed.
+    os._exit() skips cleanup on purpose - a graceful shutdown isn't the goal here,
+    an immediate and reliable one is.
+    """
+    time.sleep(delay)
+    os._exit(0)
+
+
 @router.post("/install")
 def install_update():
-    """Download the latest release's installer, run it silently, then relaunch.
+    """Download the latest release's installer, quit, let it install and relaunch.
 
-    Only meaningful for an installed (frozen) copy. Inno Setup's own Restart
-    Manager integration (CloseApplications, desktop/installer.iss) reliably closes
-    this running exe so Setup can overwrite its files - verified directly against
-    a real install. Its RestartApplications counterpart, which is supposed to
-    reopen the app afterward, did NOT reliably do so in that same testing for this
-    app - so the relaunch is handled explicitly here instead: a detached helper
-    process waits for the (already-launched, fire-and-forget) installer to fully
-    exit, then starts this exe's own path again. That helper must be detached from
-    this process, since Restart Manager is about to kill this one mid-request.
+    Two other designs were tried and rejected here, both verified directly
+    against a real installed copy rather than assumed:
+    - Relying on Inno Setup's CloseApplications/RestartApplications (Restart
+      Manager) to close and reopen this app: closing worked, reopening did not,
+      reliably, for this app.
+    - A Python-side detached `cmd /c "... && start ... "` helper to chain
+      "wait for install, then relaunch" ourselves: `start` failed with
+      "Access is denied" in testing - spawning a new GUI process via cmd/start
+      needs desktop/window-station access that a background-launched cmd doesn't
+      reliably get, unlike a direct CreateProcess of the target exe.
+    This version launches the installer directly (a plain subprocess launch,
+    which - unlike the cmd/start path - does work) and then quits; the actual
+    relaunch afterward is Inno Setup's own native, battle-tested [Run] entry
+    (desktop/installer.iss, with skipifsilent removed so it fires under
+    /VERYSILENT too) rather than anything hand-rolled here.
     """
     if not getattr(sys, "frozen", False):
         raise HTTPException(
@@ -83,19 +104,15 @@ def install_update():
         logger.exception("failed to download update installer")
         raise HTTPException(status_code=502, detail=f"failed to download the update: {exc}") from exc
 
-    exe_path = sys.executable  # this app's own installed path - unchanged after an in-place update
-    relaunch_cmd = (
-        f'"{tmp_path}" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS '
-        f'&& start "" "{exe_path}"'
-    )
     try:
         subprocess.Popen(
-            ["cmd", "/c", relaunch_cmd],
-            creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP,
+            [str(tmp_path), "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART"],
             close_fds=True,
         )
     except OSError as exc:
         logger.exception("failed to launch update installer")
         raise HTTPException(status_code=500, detail=f"failed to launch the installer: {exc}") from exc
+
+    threading.Thread(target=_quit_after_delay, args=(1.5,), daemon=True).start()
 
     return {"status": "installing"}

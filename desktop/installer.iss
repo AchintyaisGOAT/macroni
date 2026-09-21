@@ -29,13 +29,14 @@ SetupIconFile=assets\icon.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
-; Explicit (these are Inno Setup 6's defaults already, but the in-app auto-updater
-; depends on this exact behavior, so it's spelled out rather than left implicit):
-; detect the running MACRONI.exe holding its own files open, close it via Windows
-; Restart Manager so Setup can overwrite them, then relaunch it after - all without
-; the update needing its own [Run] entry, and working even under /VERYSILENT.
+; Explicit (Inno Setup 6's default already, but the in-app auto-updater's silent
+; self-update depends on this): detect the running MACRONI.exe holding its own
+; files open and close it via Windows Restart Manager, so Setup can overwrite
+; them without the app having to already be closed by the time Setup starts.
 CloseApplications=yes
-RestartApplications=yes
+; Deliberately NOT using RestartApplications to reopen the app afterward - tested
+; directly against a real install and it did not reliably do so for this app. The
+; [Run] entry below (with skipifsilent removed) handles the relaunch instead.
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -58,7 +59,11 @@ Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "Launch {#MyAppName}"; Flags: nowait postinstall skipifsilent
+; skipifsilent deliberately omitted: the in-app auto-updater runs this installer
+; with /VERYSILENT and needs the app to relaunch itself afterward with no user
+; interaction - a normal interactive/manual install still just sees this as the
+; usual "Launch MACRONI" finish-page option, unaffected by this change.
+Filename: "{app}\{#MyAppExeName}"; Description: "Launch {#MyAppName}"; Flags: nowait postinstall
 
 [Code]
 function IsWebView2Installed: Boolean;
