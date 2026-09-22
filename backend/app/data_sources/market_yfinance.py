@@ -63,8 +63,24 @@ def fetch_bars_with_fallback(ticker: str) -> tuple[pd.DataFrame, str]:
         return df, "stooq"
 
 
+def _drop_incomplete_bars(df: pd.DataFrame, ticker: str) -> pd.DataFrame:
+    """Drop bars missing OHLC values.
+
+    Yahoo returns a row for the current session (e.g. an exchange mid-day,
+    Close/Adj Close as NaN) before that day's session has settled. price_bars
+    columns are NOT NULL, so one such row would otherwise fail the whole
+    ticker's upsert and drop its entire history, not just today's bar.
+    """
+    complete = df.dropna(subset=["open", "high", "low", "close"])
+    dropped = len(df) - len(complete)
+    if dropped:
+        logger.info("%s: dropped %d incomplete bar(s) (likely today's unsettled session)", ticker, dropped)
+    return complete
+
+
 def refresh_ticker(db: Session, ticker: str) -> int:
     df, source = fetch_bars_with_fallback(ticker)
+    df = _drop_incomplete_bars(df, ticker)
     rows = [
         {
             "ticker": ticker,
