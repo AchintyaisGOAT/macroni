@@ -52,6 +52,11 @@ Name: "desktopicon"; Description: "Create a desktop icon"; GroupDescription: "Ad
 ; zero setup. Gemini calls go through the hosted proxy and need no local key at all.
 Source: "{#MyAppSourceDir}\*"; DestDir: "{app}"; Excludes: ".env"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\desktop\.env.dist"; DestDir: "{app}"; DestName: ".env"; Flags: onlyifdoesntexist
+; app/config.py's get_app_version() reads VERSION from next to the installed .exe
+; (_app_dir()), not from inside the PyInstaller bundle (which PyInstaller 6+ hides
+; under _internal\ anyway) - without this, every install falls back to "0.0.0" and
+; the update banner never stops nagging, even right after installing the latest version.
+Source: "..\VERSION"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
