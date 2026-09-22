@@ -58,32 +58,39 @@ export function Broker() {
   // Credentials are saved once to the local .env; every later call to this just
   // re-derives a fresh TOTP code from that saved secret and re-logs in - the user
   // never needs to retype anything after the first connect.
-  async function loadHoldings() {
-    setHoldingsLoading(true);
-    setError(null);
+  async function loadHoldings(isBackgroundRefresh = false) {
+    if (!isBackgroundRefresh) setHoldingsLoading(true);
+    if (!isBackgroundRefresh) setError(null);
     try {
       const h = await api.brokerHoldings();
       setHoldings(h);
       await refreshStatus();
     } catch (err) {
-      setError(extractErrorDetail(err));
+      if (!isBackgroundRefresh) setError(extractErrorDetail(err));
     } finally {
-      setHoldingsLoading(false);
+      if (!isBackgroundRefresh) setHoldingsLoading(false);
     }
   }
 
   useEffect(() => {
+    let pollInterval: ReturnType<typeof setInterval> | undefined;
     (async () => {
       try {
         const s = await refreshStatus();
         setShowForm(!s.configured);
         if (s.configured) {
           await loadHoldings();
+          // The backend caches Angel One's own holdings response for 30s to stay
+          // well under its rate limit, so a 60s poll here can't exceed that.
+          pollInterval = setInterval(() => loadHoldings(true), 60_000);
         }
       } catch (err) {
         setError(extractErrorDetail(err));
       }
     })();
+    return () => {
+      if (pollInterval) clearInterval(pollInterval);
+    };
   }, []);
 
   async function handleConnect(e: React.FormEvent) {

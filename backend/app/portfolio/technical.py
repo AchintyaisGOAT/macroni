@@ -48,6 +48,7 @@ def compute_technical_signal(prices: pd.Series) -> dict | None:
         return None
 
     last_price = float(clean.iloc[-1])
+    change_pct = float(clean.iloc[-1] / clean.iloc[-2] - 1) * 100 if clean.shape[0] > 1 else None
     components: list[float] = []
 
     rsi_val = None
@@ -75,6 +76,7 @@ def compute_technical_signal(prices: pd.Series) -> dict | None:
     score = max(-100.0, min(100.0, sum(components) / len(components)))
     return {
         "price": last_price,
+        "change_pct": change_pct,
         "rsi": rsi_val,
         "sma50": sma50,
         "sma200": sma200,
@@ -110,8 +112,10 @@ def format_technical_signals_md(signals: list[dict], empty_message: str = "No te
         trend = "n/a"
         if s["sma50"] is not None and s["sma200"] is not None:
             trend = "uptrend (50d>200d avg)" if s["sma50"] > s["sma200"] else "downtrend (50d<200d avg)"
+        change_str = f"{s['change_pct']:+.2f}%" if s.get("change_pct") is not None else "n/a"
         lines.append(
-            f"- {s['ticker']}: price ${s['price']:.2f}, RSI(14) {rsi_str}, 20d momentum z-score {mom_str}, "
-            f"{trend}, combined technical score {s['score']:+.0f}/100 ({s['zone'].replace('_', ' ')})"
+            f"- {s['ticker']}: price ${s['price']:.2f} ({change_str} vs prior close), RSI(14) {rsi_str}, "
+            f"20d momentum z-score {mom_str}, {trend}, combined technical score {s['score']:+.0f}/100 "
+            f"({s['zone'].replace('_', ' ')})"
         )
     return "\n".join(lines)

@@ -58,13 +58,24 @@ export function MarketStocks() {
 
   useEffect(() => {
     if (!code) return;
-    setLoading(true);
-    setError(null);
-    api
-      .marketStocks(code)
-      .then(setStocks)
-      .catch((err) => setError(extractErrorDetail(err)))
-      .finally(() => setLoading(false));
+
+    function load(isBackgroundRefresh = false) {
+      if (!isBackgroundRefresh) setLoading(true);
+      setError(null);
+      api
+        .marketStocks(code!)
+        .then(setStocks)
+        .catch((err) => setError(extractErrorDetail(err)))
+        .finally(() => {
+          if (!isBackgroundRefresh) setLoading(false);
+        });
+    }
+
+    load();
+    // Same reasoning as elsewhere: prices only move when the backend's 20-minute
+    // refresh runs, but this page should reflect that without needing a re-visit.
+    const interval = setInterval(() => load(true), 60_000);
+    return () => clearInterval(interval);
   }, [code]);
 
   useEffect(() => {

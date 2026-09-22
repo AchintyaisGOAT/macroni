@@ -37,6 +37,7 @@ class WatchlistItemOut(BaseModel):
     name: str
     region: str
     price: float | None = None
+    change_pct: float | None = None
     rsi: float | None = None
     momentum_zscore: float | None = None
     score: float | None = None
@@ -66,6 +67,7 @@ def get_watchlist(db: Session = Depends(get_db)):
                 name=item.name,
                 region=item.region,
                 price=signal["price"] if signal else None,
+                change_pct=signal["change_pct"] if signal else None,
                 rsi=signal["rsi"] if signal else None,
                 momentum_zscore=signal["momentum_zscore"] if signal else None,
                 score=signal["score"] if signal else None,

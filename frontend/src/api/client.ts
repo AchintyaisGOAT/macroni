@@ -159,6 +159,7 @@ export interface SyncResult {
 export interface TechnicalSignal {
   ticker: string;
   price: number;
+  change_pct: number | null;
   rsi: number | null;
   sma50: number | null;
   sma200: number | null;
@@ -220,6 +221,7 @@ export interface WatchlistItemT {
   name: string;
   region: string;
   price: number | null;
+  change_pct: number | null;
   rsi: number | null;
   momentum_zscore: number | null;
   score: number | null;

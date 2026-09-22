@@ -66,21 +66,23 @@ export function Watchlist() {
   const [ticker, setTicker] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  async function loadAll() {
-    setLoading(true);
+  async function loadAll(isBackgroundRefresh = false) {
+    if (!isBackgroundRefresh) setLoading(true);
     try {
       const [i, g] = await Promise.all([api.watchlist(), api.watchlistGuidance()]);
       setItems(i);
       setGuidance(g);
     } catch (err) {
-      setError(extractErrorDetail(err));
+      if (!isBackgroundRefresh) setError(extractErrorDetail(err));
     } finally {
-      setLoading(false);
+      if (!isBackgroundRefresh) setLoading(false);
     }
   }
 
   useEffect(() => {
     loadAll();
+    const interval = setInterval(() => loadAll(true), 60_000);
+    return () => clearInterval(interval);
   }, []);
 
   async function handleAdd(e: React.FormEvent) {
@@ -194,6 +196,7 @@ export function Watchlist() {
               <tr style={{ textAlign: "left", color: "var(--text-muted)", fontSize: 12 }}>
                 <th style={{ paddingBottom: 6 }}>Ticker</th>
                 <th>Price</th>
+                <th>Change</th>
                 <th>Technical zone</th>
                 <th>AI call</th>
                 <th />
@@ -209,6 +212,19 @@ export function Watchlist() {
                       {item.name && <div style={{ fontWeight: 400, fontSize: 11.5, color: "var(--text-muted)" }}>{item.name}</div>}
                     </td>
                     <td>{item.price !== null ? formatPrice(item.price, item.ticker) : "-"}</td>
+                    <td
+                      style={{
+                        fontWeight: 600,
+                        color:
+                          item.change_pct === null
+                            ? "var(--text-muted)"
+                            : item.change_pct >= 0
+                              ? "var(--status-good)"
+                              : "var(--status-critical)",
+                      }}
+                    >
+                      {item.change_pct !== null ? `${item.change_pct >= 0 ? "+" : ""}${item.change_pct.toFixed(2)}%` : "-"}
+                    </td>
                     <td>{item.zone ? <ZoneBadge zone={item.zone} /> : "-"}</td>
                     <td style={{ maxWidth: 320 }}>
                       {call ? (

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { api, type Exposures, type Holding, type TickerSearchResult } from "../api/client";
+import { api, type Exposures, type Holding, type TechnicalSignal, type TickerSearchResult } from "../api/client";
 import { Card } from "../components/Card";
 import { CategoryBreakdown } from "../components/CategoryBreakdown";
 import { TickerSearchInput } from "../components/TickerSearchInput";
@@ -11,6 +11,7 @@ const ASSET_CLASSES = ["equity", "bond", "commodity", "fx", "cash", "other"];
 export function Portfolio() {
   const [holdings, setHoldings] = useState<Holding[]>([]);
   const [exposures, setExposures] = useState<Exposures | null>(null);
+  const [signals, setSignals] = useState<TechnicalSignal[]>([]);
   const [ticker, setTicker] = useState("");
   const [selectedName, setSelectedName] = useState("");
   const [quantity, setQuantity] = useState("");
@@ -20,13 +21,20 @@ export function Portfolio() {
   const fileInput = useRef<HTMLInputElement>(null);
 
   async function loadAll() {
-    const [h, e] = await Promise.all([api.holdings(), api.exposures()]);
+    const [h, e, s] = await Promise.all([api.holdings(), api.exposures(), api.technicalSignals()]);
     setHoldings(h);
     setExposures(e);
+    setSignals(s);
   }
 
   useEffect(() => {
     loadAll();
+    // Prices only actually move when the backend's own 20-minute market-data
+    // refresh runs - this just makes sure an already-open Portfolio page picks
+    // that up promptly instead of staying frozen at whatever price was current
+    // when the page first loaded.
+    const interval = setInterval(loadAll, 60_000);
+    return () => clearInterval(interval);
   }, []);
 
   async function handleAdd(e: React.FormEvent) {
@@ -149,6 +157,7 @@ export function Portfolio() {
                 <th>Asset class</th>
                 <th>Region</th>
                 <th>Value</th>
+                <th>Day change</th>
                 <th>Weight</th>
                 <th>Beta</th>
                 <th />
@@ -157,6 +166,7 @@ export function Portfolio() {
             <tbody>
               {holdings.map((h) => {
                 const detail = exposures?.holdings.find((d) => d.ticker === h.ticker);
+                const signal = signals.find((s) => s.ticker === h.ticker);
                 return (
                   <tr key={h.id} style={{ borderTop: "1px solid var(--gridline)" }}>
                     <td style={{ padding: "6px 0" }}>{h.ticker}</td>
@@ -164,6 +174,19 @@ export function Portfolio() {
                     <td>{h.asset_class}</td>
                     <td>{h.region}</td>
                     <td>{detail?.value ? formatPrice(detail.value, h.ticker, 0) : "-"}</td>
+                    <td
+                      style={{
+                        fontWeight: 600,
+                        color:
+                          !signal || signal.change_pct === null
+                            ? "var(--text-muted)"
+                            : signal.change_pct >= 0
+                              ? "var(--status-good)"
+                              : "var(--status-critical)",
+                      }}
+                    >
+                      {signal?.change_pct != null ? `${signal.change_pct >= 0 ? "+" : ""}${signal.change_pct.toFixed(2)}%` : "-"}
+                    </td>
                     <td>{detail?.weight ? `${(detail.weight * 100).toFixed(1)}%` : "-"}</td>
                     <td>{detail?.beta !== null && detail?.beta !== undefined ? detail.beta.toFixed(2) : "-"}</td>
                     <td>
