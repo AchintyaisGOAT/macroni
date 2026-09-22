@@ -1,6 +1,8 @@
 .env
 desktop/.env.dist
 .venv/
+venv/
+frontend/.env.*.local
 __pycache__/
 *.pyc
 data/*.db

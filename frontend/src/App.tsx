@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { NavLink, Route, HashRouter as Router, Routes, useLocation } from "react-router-dom";
+import { api } from "./api/client";
 import { AuthProvider } from "./auth/AuthContext";
 import { Account } from "./pages/Account";
 import { Alerts } from "./pages/Alerts";
@@ -13,6 +15,36 @@ import { Support } from "./pages/Support";
 import { Watchlist } from "./pages/Watchlist";
 import { FloatingChatButton } from "./components/FloatingChatButton";
 import { UpdateBanner } from "./components/UpdateBanner";
+
+function AppVersion() {
+  const [version, setVersion] = useState<string | null>(null);
+
+  useEffect(() => {
+    api
+      .status()
+      .then((data) => setVersion(data.app_version))
+      .catch(() => {
+        // Backend not reachable yet - just don't show a version.
+      });
+  }, []);
+
+  if (!version) return null;
+
+  return (
+    <div
+      style={{
+        marginTop: "auto",
+        padding: "10px 14px",
+        fontSize: 11.5,
+        fontWeight: 600,
+        color: "var(--text-muted)",
+        letterSpacing: 0.2,
+      }}
+    >
+      v{version}
+    </div>
+  );
+}
 
 // The Chat page already IS the chat, so the floating launcher would be redundant there.
 function FloatingChatButtonUnlessOnChatPage() {
@@ -84,6 +116,7 @@ function App() {
                 {item.label}
               </NavLink>
             ))}
+            <AppVersion />
           </nav>
           <main style={{ flex: 1, overflow: "auto", padding: "24px 28px 28px" }}>
             <div style={{ marginBottom: 16 }}>
