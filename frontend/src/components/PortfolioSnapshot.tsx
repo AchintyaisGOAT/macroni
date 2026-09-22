@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import type { Exposures, Holding, LiveQuote } from "../api/client";
 import { uniformCurrencySymbol } from "../currency";
 import { Card } from "./Card";
+import { DeltaPill, StatTile } from "./StatTile";
 
 interface PortfolioSnapshotProps {
   holdings: Holding[];
@@ -48,41 +49,22 @@ export function PortfolioSnapshot({ holdings, exposures, liveQuotes, loading }: 
     if (live) weightedDayChangeValue += value * (live.change_pct / 100);
   }
   const dayChangePct = total > 0 ? (weightedDayChangeValue / total) * 100 : 0;
-  const dayChangeColor = dayChangePct >= 0 ? "var(--status-good)" : "var(--status-critical)";
-  const dayChangeArrow = dayChangePct >= 0 ? "▲" : "▼";
   const totalLabel = symbol
     ? `${symbol}${total.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
     : `${total.toLocaleString(undefined, { maximumFractionDigits: 0 })} (mixed currencies)`;
 
   return (
-    <Card padding="18px 22px">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 14 }}>
-        <div>
-          <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>Portfolio value</div>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 30, fontWeight: 700, letterSpacing: -0.6, fontVariantNumeric: "tabular-nums" }}>
-              {totalLabel}
-            </span>
-            {Object.keys(liveQuotes).length > 0 && (
-              <span
-                style={{
-                  fontSize: 12.5,
-                  fontWeight: 700,
-                  color: dayChangeColor,
-                  background: `color-mix(in srgb, ${dayChangeColor} 12%, transparent)`,
-                  borderRadius: 999,
-                  padding: "3px 9px",
-                }}
-              >
-                {dayChangeArrow} {Math.abs(dayChangePct).toFixed(2)}% today
-              </span>
-            )}
-          </div>
-        </div>
+    <StatTile
+      padding="18px 22px"
+      label="Portfolio value"
+      value={totalLabel}
+      valueSize={30}
+      delta={Object.keys(liveQuotes).length > 0 ? <DeltaPill pct={dayChangePct} size="md" suffix="% today" /> : null}
+      corner={
         <Link to="/portfolio" style={{ fontSize: 12.5, fontWeight: 700, color: "var(--brand-blue)", whiteSpace: "nowrap" }}>
           {holdings.length} holding{holdings.length === 1 ? "" : "s"} · View portfolio →
         </Link>
-      </div>
-    </Card>
+      }
+    />
   );
 }

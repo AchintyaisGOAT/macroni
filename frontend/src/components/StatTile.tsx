@@ -1,209 +1,137 @@
-import type { Signal } from "../api/client";
+import type { CSSProperties, ReactNode } from "react";
+import { tint } from "../styles";
 import { Card } from "./Card";
+import { Dot } from "./Dot";
 import { Sparkline } from "./Sparkline";
 
-export type Severity = "good" | "elevated" | "extreme";
-
-const SEVERITY_COLOR: Record<Severity, string> = {
-  good: "var(--status-good)",
-  elevated: "var(--status-warning)",
-  extreme: "var(--status-serious)",
-};
-
-// Mirrors backend/app/signals/{rates,fx,credit,growth,volatility,composite}.py -
-// the API doesn't return a category field, but every signal name is fixed and
-// known, so the grouping lives here rather than guessing from the name shape.
-const SIGNAL_CATEGORY: Record<string, string> = {
-  yield_curve_slope: "Rates",
-  real_10y_yield: "Rates",
-  policy_stance: "Rates",
-  usd_trend: "FX",
-  credit_spread_momentum: "Credit",
-  growth_momentum: "Growth & Inflation",
-  labor_slack_trend: "Growth & Inflation",
-  macro_surprise_composite: "Growth & Inflation",
-  inflation_trend: "Growth & Inflation",
-  equity_vol_regime: "Volatility & Risk",
-  risk_on_off_composite: "Volatility & Risk",
-  portfolio_beta_exposure: "Portfolio",
-};
-
-export const CATEGORY_ORDER = ["Volatility & Risk", "Rates", "Credit", "FX", "Growth & Inflation", "Portfolio"];
-
-export function signalCategory(signal: Signal): string {
-  return SIGNAL_CATEGORY[signal.name] ?? "Other";
-}
-
-export function signalSeverity(signal: Signal): Severity {
-  const magnitude = Math.abs(signal.zscore ?? 0);
-  const pct = signal.percentile;
-  const extreme = magnitude > 1.5 || (pct !== null && (pct > 0.9 || pct < 0.1));
-  const elevated = magnitude > 0.75 || (pct !== null && (pct > 0.75 || pct < 0.25));
-  if (extreme) return "extreme";
-  if (elevated) return "elevated";
-  return "good";
-}
-
-function formatSignalName(name: string): string {
-  return name.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-function formatValue(signal: Signal): string {
-  const v = signal.value;
-  if (Math.abs(v) >= 1000) return v.toLocaleString(undefined, { maximumFractionDigits: 0 });
-  if (Math.abs(v) < 1) return v.toFixed(3);
-  return v.toFixed(2);
-}
-
-// Green when the series has moved up over the visible window, red when down
-// - lets the line itself say "which direction is this going" at a glance,
-// independent of the severity dot (which says "how far from normal").
-function trendColor(history: number[]): string {
-  if (history.length < 2) return "var(--text-muted)";
-  return history[history.length - 1] >= history[0] ? "var(--status-good)" : "var(--status-critical)";
-}
-
-interface Delta {
-  pct: number;
-  color: string;
-  arrow: string;
-}
-
-// Percent change from the start to the end of the visible history window -
-// the same "delta badge next to the number" every portfolio/watchlist stat
-// card (Robinhood, Coinbase, Bloomberg) shows next to a live price.
-function computeDelta(history: number[]): Delta | null {
-  if (history.length < 2) return null;
-  const first = history[0];
-  const last = history[history.length - 1];
-  if (first === 0) return null;
-  const pct = ((last - first) / Math.abs(first)) * 100;
-  return {
-    pct,
-    color: pct >= 0 ? "var(--status-good)" : "var(--status-critical)",
-    arrow: pct >= 0 ? "▲" : "▼",
-  };
-}
-
 interface StatTileProps {
-  signal: Signal;
-  history: number[];
-  /** "tile" (default): a standalone card. "row": a compact line for a list
-   * inside a shared container - used on the Dashboard's Signals panel so
-   * a dozen signals read as one scannable table instead of a dozen cards. */
-  variant?: "tile" | "row";
-  /** Tile variant only: makes the card clickable (e.g. to open a detail view). */
+  /** Short name for what this tile shows - a signal name, an exchange code,
+   * "Total value", etc. Rendered as the bold header text. */
+  label: ReactNode;
+  /** Small severity/status dot rendered before the label. */
+  dotColor?: string;
+  /** Right-aligned content on the header row - a status pill, a link, etc. */
+  corner?: ReactNode;
+  /** Muted line(s) directly under the header, before the big number - e.g.
+   * an exchange's name/region, or a region's index name/ticker. */
+  subcaption?: ReactNode;
+  /** The big tabular-nums number this tile leads with. */
+  value?: ReactNode;
+  valueSize?: number;
+  /** Inline content next to the value, usually a <DeltaPill>. */
+  delta?: ReactNode;
+  /** Muted line(s) below the value. */
+  caption?: ReactNode;
+  sparkline?: { data: number[]; color: string; showZero?: boolean };
+  /** Bottom section - a "browse stocks" link, a countdown, etc. Renders
+   * as-is, with no default border - add one in the passed content if needed. */
+  footer?: ReactNode;
   onClick?: () => void;
+  padding?: string;
+  style?: CSSProperties;
 }
 
-export function StatTile({ signal, history, variant = "tile", onClick }: StatTileProps) {
-  const dotColor = SEVERITY_COLOR[signalSeverity(signal)];
-  const delta = computeDelta(history);
-
-  if (variant === "row") {
-    return (
-      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 6px" }}>
-        <span aria-hidden style={{ width: 8, height: 8, borderRadius: "50%", background: dotColor, flexShrink: 0 }} />
-        <span
-          style={{
-            fontSize: 13,
-            fontWeight: 600,
-            width: 200,
-            flexShrink: 0,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {formatSignalName(signal.name)}
-        </span>
-        <span
-          style={{
-            fontSize: 12,
-            color: "var(--text-muted)",
-            flex: 1,
-            minWidth: 0,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {signal.label}
-          {signal.zscore !== null ? ` · z=${signal.zscore.toFixed(2)}` : ""}
-        </span>
-        <span
-          style={{
-            fontSize: 13,
-            fontWeight: 700,
-            width: 72,
-            textAlign: "right",
-            flexShrink: 0,
-            fontVariantNumeric: "tabular-nums",
-          }}
-        >
-          {formatValue(signal)}
-        </span>
-        <span style={{ width: 72, height: 28, flexShrink: 0 }}>
-          <Sparkline data={history} color={trendColor(history)} />
-        </span>
-      </div>
-    );
-  }
-
+// The one "label + big number + delta" card shape, used everywhere from
+// Dashboard's signal grid to Portfolio's summary cards to Global Markets'
+// exchange/region cards - previously reimplemented independently in each of
+// those with slightly different spacing, font sizes, and header layouts.
+export function StatTile({
+  label,
+  dotColor,
+  corner,
+  subcaption,
+  value,
+  valueSize = 24,
+  delta,
+  caption,
+  sparkline,
+  footer,
+  onClick,
+  padding = "16px 18px",
+  style,
+}: StatTileProps) {
   return (
     <Card
-      padding="16px"
-      style={{ display: "flex", flexDirection: "column", gap: 10, cursor: onClick ? "pointer" : "default" }}
+      padding={padding}
       onClick={onClick}
+      style={{ display: "flex", flexDirection: "column", gap: 10, cursor: onClick ? "pointer" : "default", ...style }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-        <span aria-hidden style={{ width: 7, height: 7, borderRadius: "50%", background: dotColor, flexShrink: 0 }} />
-        <span
-          style={{
-            color: "var(--text-secondary)",
-            fontSize: 13,
-            fontWeight: 700,
-            letterSpacing: 0.2,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {formatSignalName(signal.name)}
-        </span>
-      </div>
-
-      <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 24, fontWeight: 700, letterSpacing: -0.5, fontVariantNumeric: "tabular-nums" }}>
-          {formatValue(signal)}
-        </span>
-        {delta && Math.abs(delta.pct) >= 0.01 && (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}>
+          {dotColor && <Dot color={dotColor} size={7} />}
           <span
             style={{
-              fontSize: 11,
+              color: "var(--text-secondary)",
+              fontSize: 13,
               fontWeight: 700,
-              color: delta.color,
-              background: `color-mix(in srgb, ${delta.color} 12%, transparent)`,
-              borderRadius: 999,
-              padding: "2px 7px",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 2,
+              letterSpacing: 0.2,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
             }}
           >
-            {delta.arrow} {Math.abs(delta.pct).toFixed(1)}%
+            {label}
           </span>
-        )}
+        </div>
+        {corner}
       </div>
 
-      <div style={{ color: "var(--text-muted)", fontSize: 11.5, marginTop: -6 }}>
-        {signal.label}
-        {signal.zscore !== null ? ` · z=${signal.zscore.toFixed(2)}` : ""}
-      </div>
+      {subcaption && <div style={{ color: "var(--text-muted)", fontSize: 11.5, marginTop: -6 }}>{subcaption}</div>}
 
-      <div style={{ height: 64 }}>
-        <Sparkline data={history} color={trendColor(history)} showZero />
-      </div>
+      {value !== undefined && (
+        <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+          <span style={{ fontSize: valueSize, fontWeight: 700, letterSpacing: -0.5, fontVariantNumeric: "tabular-nums" }}>
+            {value}
+          </span>
+          {delta}
+        </div>
+      )}
+
+      {caption && <div style={{ color: "var(--text-muted)", fontSize: 11.5, marginTop: -6 }}>{caption}</div>}
+
+      {sparkline && (
+        <div style={{ height: 64 }}>
+          <Sparkline data={sparkline.data} color={sparkline.color} showZero={sparkline.showZero} />
+        </div>
+      )}
+
+      {footer}
     </Card>
+  );
+}
+
+/** The colored "▲ 1.2%" badge next to a StatTile's value - the same delta
+ * pill every portfolio/watchlist stat card shows next to a live price,
+ * previously redefined per file with slightly different sizes/paddings. */
+export function DeltaPill({
+  pct,
+  size = "sm",
+  suffix = "%",
+  precision = 1,
+}: {
+  pct: number;
+  size?: "sm" | "md";
+  suffix?: string;
+  precision?: number;
+}) {
+  const color = pct >= 0 ? "var(--status-good)" : "var(--status-critical)";
+  const arrow = pct >= 0 ? "▲" : "▼";
+  return (
+    <span
+      style={{
+        fontSize: size === "md" ? 12.5 : 11,
+        fontWeight: 700,
+        color,
+        background: tint(color, 12),
+        borderRadius: 999,
+        padding: size === "md" ? "3px 9px" : "2px 7px",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 2,
+      }}
+    >
+      {arrow} {Math.abs(pct).toFixed(precision)}
+      {suffix}
+    </span>
   );
 }

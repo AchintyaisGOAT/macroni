@@ -16,7 +16,18 @@ import { PageHeader } from "../components/PageHeader";
 import { PortfolioSnapshot } from "../components/PortfolioSnapshot";
 import { RegimeNarrative } from "../components/RegimeNarrative";
 import { Sparkline } from "../components/Sparkline";
-import { CATEGORY_ORDER, signalCategory, signalSeverity, StatTile, type Severity } from "../components/StatTile";
+import { DeltaPill, StatTile } from "../components/StatTile";
+import {
+  CATEGORY_ORDER,
+  formatSignalName,
+  formatSignalValue,
+  SEVERITY_COLOR,
+  signalCategory,
+  signalDeltaPct,
+  signalSeverity,
+  signalTrendColor,
+  type Severity,
+} from "../lib/signals";
 
 const SEVERITY_RANK: Record<Severity, number> = { extreme: 0, elevated: 1, good: 2 };
 
@@ -33,10 +44,6 @@ const LEGEND_COLOR: Record<Severity, string> = {
 };
 
 const HISTORY_OPTIONS = [30, 60, 120];
-
-function formatSignalName(name: string): string {
-  return name.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-}
 
 // The one composite signal that already encodes a risk-on/neutral/risk-off
 // read (see backend/app/signals/composite.py) - reused here instead of
@@ -265,9 +272,28 @@ export function Dashboard() {
                 {category}
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
-                {list.map((s) => (
-                  <StatTile key={s.name} signal={s} history={history[s.name] ?? []} onClick={() => setSelectedSignal(s)} />
-                ))}
+                {list.map((s) => {
+                  const h = history[s.name] ?? [];
+                  const delta = signalDeltaPct(h);
+                  return (
+                    <StatTile
+                      key={s.name}
+                      padding="16px"
+                      dotColor={SEVERITY_COLOR[signalSeverity(s)]}
+                      label={formatSignalName(s.name)}
+                      value={formatSignalValue(s)}
+                      delta={delta !== null && Math.abs(delta) >= 0.01 ? <DeltaPill pct={delta} /> : null}
+                      caption={
+                        <>
+                          {s.label}
+                          {s.zscore !== null ? ` · z=${s.zscore.toFixed(2)}` : ""}
+                        </>
+                      }
+                      sparkline={{ data: h, color: signalTrendColor(h), showZero: true }}
+                      onClick={() => setSelectedSignal(s)}
+                    />
+                  );
+                })}
               </div>
             </div>
           ))

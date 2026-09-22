@@ -114,6 +114,11 @@ export function chatBubbleStyle(role: "user" | "assistant", compact = false): CS
   };
 }
 
+/** Width for a centered, narrow "form" card - Account's login card, Support's
+ * message form, Broker's connect form. Previously three different hardcoded
+ * widths (480/640/920) expressing the same "centered narrow form" intent. */
+export const formCardWidth = 640;
+
 export const mutedTextStyle: CSSProperties = { color: "var(--text-muted)", fontSize: 13 };
 export const loadingTextStyle: CSSProperties = mutedTextStyle;
 export const emptyTextStyle: CSSProperties = mutedTextStyle;

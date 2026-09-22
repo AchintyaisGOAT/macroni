@@ -4,7 +4,7 @@ import { useAuth } from "../auth/AuthContext";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { PageHeader } from "../components/PageHeader";
-import { errorTextStyle, inputStyle, labelStyle, loadingTextStyle } from "../styles";
+import { errorTextStyle, formCardWidth, inputStyle, labelStyle, loadingTextStyle } from "../styles";
 
 const FRIENDLY_ERROR: Record<string, string> = {
   "auth/email-already-in-use": "That email already has an account - try logging in instead.",
@@ -67,9 +67,9 @@ export function Account() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      <PageHeader title="Account" />
+      <PageHeader title="Account" subtitle="Optional sign-in - most of MACRONI works without it" />
 
-      <Card padding="18px 20px" style={{ alignSelf: "center", width: 640, maxWidth: "100%" }}>
+      <Card padding="18px 20px" style={{ alignSelf: "center", width: formCardWidth, maxWidth: "100%" }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 6 }}>
           Optional account
         </div>
@@ -82,11 +82,11 @@ export function Account() {
       </Card>
 
       {loading ? (
-        <Card padding="20px 22px" style={{ alignSelf: "center", width: 480, maxWidth: "100%" }}>
+        <Card padding="20px 22px" style={{ alignSelf: "center", width: formCardWidth, maxWidth: "100%" }}>
           <div style={loadingTextStyle}>Loading...</div>
         </Card>
       ) : user ? (
-        <Card padding="20px 22px" style={{ alignSelf: "center", width: 480, maxWidth: "100%" }}>
+        <Card padding="20px 22px" style={{ alignSelf: "center", width: formCardWidth, maxWidth: "100%" }}>
           <div style={{ fontSize: 14, fontWeight: 700 }}>Signed in as {user.email}</div>
           <p style={{ fontSize: 12.5, color: "var(--text-secondary)", marginTop: 6 }}>
             Signing out doesn't affect your portfolio, broker connection, or anything else in the app.
@@ -96,8 +96,8 @@ export function Account() {
           </Button>
         </Card>
       ) : (
-        <Card padding="20px 22px" style={{ alignSelf: "center", width: 480, maxWidth: "100%" }}>
-          <div style={{ display: "flex", gap: 16, marginBottom: 16, borderBottom: "1px solid var(--gridline)" }}>
+        <Card padding="20px 22px" style={{ alignSelf: "center", width: formCardWidth, maxWidth: "100%" }}>
+          <div style={{ display: "flex", justifyContent: "center", gap: 16, marginBottom: 16, borderBottom: "1px solid var(--gridline)" }}>
             {(["login", "signup"] as const).map((m) => (
               <button
                 key={m}
@@ -152,7 +152,7 @@ export function Account() {
             <Button
               type="submit"
               disabled={submitting || !email.trim() || password.length < 6}
-              style={{ alignSelf: "flex-start" }}
+              style={{ alignSelf: "center" }}
               fontSize={13}
             >
               {submitting ? "Please wait..." : mode === "login" ? "Log in" : "Sign up"}
@@ -161,7 +161,7 @@ export function Account() {
               <button
                 type="button"
                 onClick={handleReset}
-                style={{ alignSelf: "flex-start", background: "transparent", border: "none", color: "var(--text-secondary)", fontSize: 12.5, fontWeight: 600 }}
+                style={{ alignSelf: "center", background: "transparent", border: "none", color: "var(--text-secondary)", fontSize: 12.5, fontWeight: 600 }}
               >
                 Forgot password?
               </button>

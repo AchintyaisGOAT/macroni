@@ -5,6 +5,7 @@ import { formatPrice } from "../currency";
 import { extractErrorDetail } from "../lib/errors";
 import { emptyTextStyle, errorTextStyle, loadingTextStyle } from "../styles";
 import { AiCallCell, GuidanceFooter, GuidanceHeader } from "./GuidanceParts";
+import { Table } from "./Table";
 import { ZoneBadge } from "./ZoneBadge";
 
 export function TradeGuidancePanel() {
@@ -68,51 +69,44 @@ export function TradeGuidancePanel() {
       ) : signals.length === 0 ? (
         <div style={emptyTextStyle}>No equity holdings with enough price history yet - add holdings or sync your broker first.</div>
       ) : (
-        <table style={{ fontSize: 13, width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr style={{ textAlign: "left", color: "var(--text-muted)", fontSize: 12 }}>
-              <th style={{ paddingBottom: 6 }}>Ticker</th>
-              <th>Price</th>
-              <th>Change</th>
-              <th>RSI(14)</th>
-              <th>Technical zone</th>
-              <th>AI call</th>
-              <th>Confidence</th>
-            </tr>
-          </thead>
-          <tbody>
-            {signals.map((s) => {
-              const call = callByTicker.get(s.ticker);
-              return (
-                <tr key={s.ticker} style={{ borderTop: "1px solid var(--gridline)", verticalAlign: "top" }}>
-                  <td style={{ padding: "8px 0", fontWeight: 600 }}>{s.ticker}</td>
-                  <td>{formatPrice(s.price, s.ticker)}</td>
-                  <td
-                    style={{
-                      fontWeight: 600,
-                      color:
-                        s.change_pct === null
-                          ? "var(--text-muted)"
-                          : s.change_pct >= 0
-                            ? "var(--status-good)"
-                            : "var(--status-critical)",
-                    }}
-                  >
-                    {s.change_pct !== null ? `${s.change_pct >= 0 ? "+" : ""}${s.change_pct.toFixed(2)}%` : "-"}
-                  </td>
-                  <td>{s.rsi !== null ? s.rsi.toFixed(0) : "-"}</td>
-                  <td>
-                    <ZoneBadge zone={s.zone} />
-                  </td>
-                  <td style={{ maxWidth: 320 }}>
-                    <AiCallCell call={call} />
-                  </td>
-                  <td style={{ textTransform: "capitalize" }}>{call?.confidence ?? "-"}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <Table
+          rows={signals}
+          rowKey={(s) => s.ticker}
+          columns={[
+            { header: "Ticker", cellStyle: { fontWeight: 600 }, render: (s) => s.ticker },
+            { header: "Price", render: (s) => formatPrice(s.price, s.ticker) },
+            {
+              header: "Change",
+              render: (s) => (
+                <span
+                  style={{
+                    fontWeight: 600,
+                    color:
+                      s.change_pct === null
+                        ? "var(--text-muted)"
+                        : s.change_pct >= 0
+                          ? "var(--status-good)"
+                          : "var(--status-critical)",
+                  }}
+                >
+                  {s.change_pct !== null ? `${s.change_pct >= 0 ? "+" : ""}${s.change_pct.toFixed(2)}%` : "-"}
+                </span>
+              ),
+            },
+            { header: "RSI(14)", render: (s) => (s.rsi !== null ? s.rsi.toFixed(0) : "-") },
+            { header: "Technical zone", render: (s) => <ZoneBadge zone={s.zone} /> },
+            {
+              header: "AI call",
+              cellStyle: { maxWidth: 320 },
+              render: (s) => <AiCallCell call={callByTicker.get(s.ticker)} />,
+            },
+            {
+              header: "Confidence",
+              cellStyle: { textTransform: "capitalize" },
+              render: (s) => callByTicker.get(s.ticker)?.confidence ?? "-",
+            },
+          ]}
+        />
       )}
 
       <GuidanceFooter guidance={guidance} />
