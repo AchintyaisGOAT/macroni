@@ -72,9 +72,39 @@ export function MarketStocks() {
     }
 
     load();
-    // Same reasoning as elsewhere: prices only move when the backend's 20-minute
-    // refresh runs, but this page should reflect that without needing a re-visit.
+    // Technical zones only need the slower 20-minute-refresh cycle - RSI/trend
+    // don't meaningfully change second to second.
     const interval = setInterval(() => load(true), 60_000);
+    return () => clearInterval(interval);
+  }, [code]);
+
+  // Fast live-price layer: fast_info is a lightweight quote lookup (a few hundred
+  // ms for a whole market's worth of tickers), unlike the full daily-history pull
+  // above, so it's cheap enough to poll every few seconds for a genuinely
+  // live-feeling price - still Yahoo's free, exchange-delayed quote underneath,
+  // not a true real-time tick feed, but far closer to "live" than a 20-minute
+  // refresh. Only touches price/change_pct - zone/score stay on the slower cycle.
+  useEffect(() => {
+    if (!code) return;
+
+    function loadLiveQuotes() {
+      api
+        .marketLiveQuotes(code!)
+        .then((quotes) => {
+          const byTicker = new Map(quotes.map((q) => [q.ticker, q]));
+          setStocks((prev) =>
+            prev.map((s) => {
+              const q = byTicker.get(s.ticker);
+              return q ? { ...s, price: q.price, change_pct: q.change_pct } : s;
+            })
+          );
+        })
+        .catch(() => {
+          // Best-effort - the slower 60s refresh above will eventually catch up.
+        });
+    }
+
+    const interval = setInterval(loadLiveQuotes, 5_000);
     return () => clearInterval(interval);
   }, [code]);
 

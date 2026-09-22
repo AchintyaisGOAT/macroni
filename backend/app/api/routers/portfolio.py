@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.data_sources.market_search import search_tickers
 from app.db import get_db
+from app.markets.live_quotes import get_live_quotes
 from app.portfolio.csv_import import parse_holdings_csv
 from app.portfolio.exposures import compute_portfolio_exposures
 from app.portfolio.holdings import add_holding, delete_holding, list_holdings, replace_all_holdings
@@ -65,6 +66,12 @@ async def import_holdings_csv(file: UploadFile = File(...), db: Session = Depend
 @router.get("/exposures")
 def get_exposures(db: Session = Depends(get_db)):
     return compute_portfolio_exposures(db)
+
+
+@router.get("/live-quotes")
+def get_portfolio_live_quotes(db: Session = Depends(get_db)):
+    tickers = [h.ticker for h in list_holdings(db)]
+    return get_live_quotes(tickers)
 
 
 @router.get("/search")

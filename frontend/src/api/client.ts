@@ -215,6 +215,12 @@ export interface MarketStock {
   score: number | null;
 }
 
+export interface LiveQuote {
+  ticker: string;
+  price: number;
+  change_pct: number;
+}
+
 export interface WatchlistItemT {
   id: number;
   ticker: string;
@@ -287,6 +293,8 @@ export const api = {
   marketStocks: (regionCode: string) => request<MarketStock[]>(`/api/markets/${regionCode}/stocks`),
   searchMarketStocks: (regionCode: string, q: string, limit = 15) =>
     request<TickerSearchResult[]>(`/api/markets/${regionCode}/search?q=${encodeURIComponent(q)}&limit=${limit}`),
+  marketLiveQuotes: (regionCode: string) => request<LiveQuote[]>(`/api/markets/${regionCode}/live-quotes`),
+  portfolioLiveQuotes: () => request<LiveQuote[]>("/api/portfolio/live-quotes"),
 
   sendSupportMessage: (senderEmail: string, message: string) =>
     request<{ status: string }>("/api/support", {

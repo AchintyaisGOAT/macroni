@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { api, type Exposures, type Holding, type TechnicalSignal, type TickerSearchResult } from "../api/client";
+import { api, type Exposures, type Holding, type LiveQuote, type TechnicalSignal, type TickerSearchResult } from "../api/client";
 import { Card } from "../components/Card";
 import { CategoryBreakdown } from "../components/CategoryBreakdown";
 import { TickerSearchInput } from "../components/TickerSearchInput";
@@ -12,6 +12,7 @@ export function Portfolio() {
   const [holdings, setHoldings] = useState<Holding[]>([]);
   const [exposures, setExposures] = useState<Exposures | null>(null);
   const [signals, setSignals] = useState<TechnicalSignal[]>([]);
+  const [liveQuotes, setLiveQuotes] = useState<Record<string, LiveQuote>>({});
   const [ticker, setTicker] = useState("");
   const [selectedName, setSelectedName] = useState("");
   const [quantity, setQuantity] = useState("");
@@ -34,6 +35,27 @@ export function Portfolio() {
     // that up promptly instead of staying frozen at whatever price was current
     // when the page first loaded.
     const interval = setInterval(loadAll, 60_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Fast live-price layer, same approach as Global Markets: a lightweight quote
+  // lookup cheap enough to poll every few seconds, layered on top of the slower
+  // 60s cycle above (which handles beta/weight/technical-zone, none of which
+  // change second to second). Still Yahoo's free, exchange-delayed quote
+  // underneath - not a true real-time tick feed - but far closer to "live."
+  useEffect(() => {
+    function loadLiveQuotes() {
+      api
+        .portfolioLiveQuotes()
+        .then((quotes) => {
+          setLiveQuotes(Object.fromEntries(quotes.map((q) => [q.ticker, q])));
+        })
+        .catch(() => {
+          // Best-effort - the slower 60s refresh will eventually catch up.
+        });
+    }
+    loadLiveQuotes();
+    const interval = setInterval(loadLiveQuotes, 5_000);
     return () => clearInterval(interval);
   }, []);
 
@@ -167,25 +189,28 @@ export function Portfolio() {
               {holdings.map((h) => {
                 const detail = exposures?.holdings.find((d) => d.ticker === h.ticker);
                 const signal = signals.find((s) => s.ticker === h.ticker);
+                const live = liveQuotes[h.ticker];
+                const value = live ? live.price * h.quantity : detail?.value;
+                const changePct = live ? live.change_pct : signal?.change_pct;
                 return (
                   <tr key={h.id} style={{ borderTop: "1px solid var(--gridline)" }}>
                     <td style={{ padding: "6px 0" }}>{h.ticker}</td>
                     <td>{h.quantity}</td>
                     <td>{h.asset_class}</td>
                     <td>{h.region}</td>
-                    <td>{detail?.value ? formatPrice(detail.value, h.ticker, 0) : "-"}</td>
+                    <td>{value ? formatPrice(value, h.ticker, 0) : "-"}</td>
                     <td
                       style={{
                         fontWeight: 600,
                         color:
-                          !signal || signal.change_pct === null
+                          changePct == null
                             ? "var(--text-muted)"
-                            : signal.change_pct >= 0
+                            : changePct >= 0
                               ? "var(--status-good)"
                               : "var(--status-critical)",
                       }}
                     >
-                      {signal?.change_pct != null ? `${signal.change_pct >= 0 ? "+" : ""}${signal.change_pct.toFixed(2)}%` : "-"}
+                      {changePct != null ? `${changePct >= 0 ? "+" : ""}${changePct.toFixed(2)}%` : "-"}
                     </td>
                     <td>{detail?.weight ? `${(detail.weight * 100).toFixed(1)}%` : "-"}</td>
                     <td>{detail?.beta !== null && detail?.beta !== undefined ? detail.beta.toFixed(2) : "-"}</td>
@@ -215,7 +240,17 @@ export function Portfolio() {
               <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: -0.5 }}>
                 {(() => {
                   const symbol = uniformCurrencySymbol(holdings.map((h) => h.ticker));
-                  const amount = exposures.total_value.toLocaleString(undefined, { maximumFractionDigits: 0 });
+                  // Prefer the live quote's price where we have one, falling back to
+                  // the slower exposures snapshot for anything the live layer hasn't
+                  // returned yet - keeps the total moving with the per-row values above
+                  // instead of jumping only once a minute.
+                  const total = holdings.reduce((sum, h) => {
+                    const live = liveQuotes[h.ticker];
+                    if (live) return sum + live.price * h.quantity;
+                    const detail = exposures.holdings.find((d) => d.ticker === h.ticker);
+                    return sum + (detail?.value ?? 0);
+                  }, 0);
+                  const amount = total.toLocaleString(undefined, { maximumFractionDigits: 0 });
                   // Holdings across different currencies (e.g. a US stock and an Indian
                   // one) can't be summed into one meaningful total without an FX
                   // conversion this app doesn't do - flagging that plainly beats
