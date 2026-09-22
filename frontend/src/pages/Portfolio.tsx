@@ -38,11 +38,15 @@ export function Portfolio() {
     return () => clearInterval(interval);
   }, []);
 
-  // Fast live-price layer, same approach as Global Markets: a lightweight quote
-  // lookup cheap enough to poll every few seconds, layered on top of the slower
-  // 60s cycle above (which handles beta/weight/technical-zone, none of which
-  // change second to second). Still Yahoo's free, exchange-delayed quote
-  // underneath - not a true real-time tick feed - but far closer to "live."
+  // Fast live-price layer, on top of the slower 60s cycle above (which handles
+  // beta/weight/technical-zone, none of which change second to second). For
+  // anything actually held via a connected Angel One account, the backend
+  // serves this from its own real-time WebSocket feed - the exchange pushing
+  // ticks the instant a trade happens, not us polling for one - so this can
+  // afford to poll quite often; it's just an in-memory lookup on the backend
+  // for those tickers, not a fresh external call each time. Anything not
+  // covered by that (broker not connected, or a non-broker holding) falls back
+  // to Yahoo's own delayed quote, same as Global Markets.
   useEffect(() => {
     function loadLiveQuotes() {
       api
@@ -55,7 +59,7 @@ export function Portfolio() {
         });
     }
     loadLiveQuotes();
-    const interval = setInterval(loadLiveQuotes, 5_000);
+    const interval = setInterval(loadLiveQuotes, 2_000);
     return () => clearInterval(interval);
   }, []);
 

@@ -104,14 +104,34 @@ def _call(method_name: str, *args, **kwargs):
 _HOLDINGS_CACHE_TTL_SECONDS = 30.0
 _holdings_cache: tuple[float, list[dict]] | None = None
 
+# Yahoo-style ticker -> (symboltoken, exchange), rebuilt every time holdings are
+# fetched - lets the live WebSocket feed (broker/live_feed.py) subscribe using
+# Angel One's own token IDs from a ticker it already knows about (e.g. from the
+# Holding table), without needing a schema change to persist this mapping.
+_ticker_token_map: dict[str, tuple[str, str]] = {}
+
+
+def get_ticker_token_map() -> dict[str, tuple[str, str]]:
+    return dict(_ticker_token_map)
+
 
 def fetch_holdings(force_refresh: bool = False) -> list[dict]:
-    global _holdings_cache
+    global _holdings_cache, _ticker_token_map
     now = time.monotonic()
     if not force_refresh and _holdings_cache is not None and (now - _holdings_cache[0]) < _HOLDINGS_CACHE_TTL_SECONDS:
         return _holdings_cache[1]
     data = _call("holding") or []
     _holdings_cache = (now, data)
+
+    token_map: dict[str, tuple[str, str]] = {}
+    for h in data:
+        ticker = map_to_yahoo_ticker(h.get("tradingsymbol", ""), h.get("exchange", ""))
+        symboltoken = h.get("symboltoken")
+        exchange = h.get("exchange")
+        if ticker and symboltoken and exchange:
+            token_map[ticker] = (str(symboltoken), exchange)
+    _ticker_token_map = token_map
+
     return data
 
 
