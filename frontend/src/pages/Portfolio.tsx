@@ -4,10 +4,12 @@ import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { CategoryBreakdown } from "../components/CategoryBreakdown";
 import { PageHeader } from "../components/PageHeader";
+import { StatTile } from "../components/StatTile";
+import { Table } from "../components/Table";
 import { TickerSearchInput } from "../components/TickerSearchInput";
 import { TradeGuidancePanel } from "../components/TradeGuidancePanel";
 import { formatPrice, uniformCurrencySymbol } from "../currency";
-import { emptyTextStyle, errorTextStyle, inputStyle } from "../styles";
+import { emptyTextStyle, errorTextStyle, inputStyle, loadingTextStyle } from "../styles";
 
 const ASSET_CLASSES = ["equity", "bond", "commodity", "fx", "cash", "other"];
 
@@ -22,6 +24,7 @@ export function Portfolio() {
   const [assetClass, setAssetClass] = useState("equity");
   const [region, setRegion] = useState("US");
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const fileInput = useRef<HTMLInputElement>(null);
 
   async function loadAll() {
@@ -29,6 +32,7 @@ export function Portfolio() {
     setHoldings(h);
     setExposures(e);
     setSignals(s);
+    setLoading(false);
   }
 
   useEffect(() => {
@@ -154,62 +158,71 @@ export function Portfolio() {
 
       <Card padding="18px 20px">
         <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 12 }}>Holdings</div>
-        {holdings.length === 0 ? (
+        {loading ? (
+          <div style={loadingTextStyle}>Loading...</div>
+        ) : holdings.length === 0 ? (
           <div style={emptyTextStyle}>No holdings yet.</div>
         ) : (
-          <table style={{ fontSize: 13, width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ textAlign: "left", color: "var(--text-muted)", fontSize: 12 }}>
-                <th style={{ paddingBottom: 6 }}>Ticker</th>
-                <th>Quantity</th>
-                <th>Asset class</th>
-                <th>Region</th>
-                <th>Value</th>
-                <th>Day change</th>
-                <th>Weight</th>
-                <th>Beta</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {holdings.map((h) => {
-                const detail = exposures?.holdings.find((d) => d.ticker === h.ticker);
-                const signal = signals.find((s) => s.ticker === h.ticker);
-                const live = liveQuotes[h.ticker];
-                const value = live ? live.price * h.quantity : detail?.value;
-                const changePct = live ? live.change_pct : signal?.change_pct;
-                return (
-                  <tr key={h.id} style={{ borderTop: "1px solid var(--gridline)" }}>
-                    <td style={{ padding: "6px 0" }}>{h.ticker}</td>
-                    <td>{h.quantity}</td>
-                    <td>{h.asset_class}</td>
-                    <td>{h.region}</td>
-                    <td>{value ? formatPrice(value, h.ticker, 0) : "-"}</td>
-                    <td
+          <Table
+            rows={holdings}
+            rowKey={(h) => h.id}
+            columns={[
+              { header: "Ticker", render: (h) => h.ticker },
+              { header: "Quantity", render: (h) => h.quantity },
+              { header: "Asset class", render: (h) => h.asset_class },
+              { header: "Region", render: (h) => h.region },
+              {
+                header: "Value",
+                render: (h) => {
+                  const live = liveQuotes[h.ticker];
+                  const detail = exposures?.holdings.find((d) => d.ticker === h.ticker);
+                  const value = live ? live.price * h.quantity : detail?.value;
+                  return value ? formatPrice(value, h.ticker, 0) : "-";
+                },
+              },
+              {
+                header: "Day change",
+                render: (h) => {
+                  const live = liveQuotes[h.ticker];
+                  const signal = signals.find((s) => s.ticker === h.ticker);
+                  const changePct = live ? live.change_pct : signal?.change_pct;
+                  return (
+                    <span
                       style={{
                         fontWeight: 600,
                         color:
-                          changePct == null
-                            ? "var(--text-muted)"
-                            : changePct >= 0
-                              ? "var(--status-good)"
-                              : "var(--status-critical)",
+                          changePct == null ? "var(--text-muted)" : changePct >= 0 ? "var(--status-good)" : "var(--status-critical)",
                       }}
                     >
                       {changePct != null ? `${changePct >= 0 ? "+" : ""}${changePct.toFixed(2)}%` : "-"}
-                    </td>
-                    <td>{detail?.weight ? `${(detail.weight * 100).toFixed(1)}%` : "-"}</td>
-                    <td>{detail?.beta !== null && detail?.beta !== undefined ? detail.beta.toFixed(2) : "-"}</td>
-                    <td>
-                      <Button variant="danger" onClick={() => handleDelete(h.id)}>
-                        Remove
-                      </Button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                    </span>
+                  );
+                },
+              },
+              {
+                header: "Weight",
+                render: (h) => {
+                  const detail = exposures?.holdings.find((d) => d.ticker === h.ticker);
+                  return detail?.weight ? `${(detail.weight * 100).toFixed(1)}%` : "-";
+                },
+              },
+              {
+                header: "Beta",
+                render: (h) => {
+                  const detail = exposures?.holdings.find((d) => d.ticker === h.ticker);
+                  return detail?.beta !== null && detail?.beta !== undefined ? detail.beta.toFixed(2) : "-";
+                },
+              },
+              {
+                header: "",
+                render: (h) => (
+                  <Button variant="danger" onClick={() => handleDelete(h.id)}>
+                    Remove
+                  </Button>
+                ),
+              },
+            ]}
+          />
         )}
       </Card>
 
@@ -218,42 +231,45 @@ export function Portfolio() {
       {exposures && exposures.total_value > 0 && (
         <>
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-            <Card padding="16px 20px" style={{ flex: 1, minWidth: 200 }}>
-              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>Total value</div>
-              <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: -0.5 }}>
-                {(() => {
-                  const symbol = uniformCurrencySymbol(holdings.map((h) => h.ticker));
-                  // Prefer the live quote's price where we have one, falling back to
-                  // the slower exposures snapshot for anything the live layer hasn't
-                  // returned yet - keeps the total moving with the per-row values above
-                  // instead of jumping only once a minute.
-                  const total = holdings.reduce((sum, h) => {
-                    const live = liveQuotes[h.ticker];
-                    if (live) return sum + live.price * h.quantity;
-                    const detail = exposures.holdings.find((d) => d.ticker === h.ticker);
-                    return sum + (detail?.value ?? 0);
-                  }, 0);
-                  const amount = total.toLocaleString(undefined, { maximumFractionDigits: 0 });
-                  // Holdings across different currencies (e.g. a US stock and an Indian
-                  // one) can't be summed into one meaningful total without an FX
-                  // conversion this app doesn't do - flagging that plainly beats
-                  // silently labeling a mixed-currency sum with one wrong symbol.
-                  return symbol ? `${symbol}${amount}` : `${amount} (mixed currencies)`;
-                })()}
-              </div>
-            </Card>
-            <Card padding="16px 20px" style={{ flex: 1, minWidth: 200 }}>
-              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>Portfolio beta (vs SPY)</div>
-              <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: -0.5 }}>
-                {exposures.portfolio_beta !== null ? exposures.portfolio_beta.toFixed(2) : "n/a"}
-              </div>
-            </Card>
-            <Card padding="16px 20px" style={{ flex: 1, minWidth: 200 }}>
-              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>Bond duration (approx.)</div>
-              <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: -0.5 }}>
-                {exposures.portfolio_duration_years !== null ? `${exposures.portfolio_duration_years.toFixed(1)}y` : "n/a"}
-              </div>
-            </Card>
+            <StatTile
+              padding="16px 20px"
+              style={{ flex: 1, minWidth: 200 }}
+              label="Total value"
+              valueSize={28}
+              value={(() => {
+                const symbol = uniformCurrencySymbol(holdings.map((h) => h.ticker));
+                // Prefer the live quote's price where we have one, falling back to
+                // the slower exposures snapshot for anything the live layer hasn't
+                // returned yet - keeps the total moving with the per-row values above
+                // instead of jumping only once a minute.
+                const total = holdings.reduce((sum, h) => {
+                  const live = liveQuotes[h.ticker];
+                  if (live) return sum + live.price * h.quantity;
+                  const detail = exposures.holdings.find((d) => d.ticker === h.ticker);
+                  return sum + (detail?.value ?? 0);
+                }, 0);
+                const amount = total.toLocaleString(undefined, { maximumFractionDigits: 0 });
+                // Holdings across different currencies (e.g. a US stock and an Indian
+                // one) can't be summed into one meaningful total without an FX
+                // conversion this app doesn't do - flagging that plainly beats
+                // silently labeling a mixed-currency sum with one wrong symbol.
+                return symbol ? `${symbol}${amount}` : `${amount} (mixed currencies)`;
+              })()}
+            />
+            <StatTile
+              padding="16px 20px"
+              style={{ flex: 1, minWidth: 200 }}
+              label="Portfolio beta (vs SPY)"
+              valueSize={28}
+              value={exposures.portfolio_beta !== null ? exposures.portfolio_beta.toFixed(2) : "n/a"}
+            />
+            <StatTile
+              padding="16px 20px"
+              style={{ flex: 1, minWidth: 200 }}
+              label="Bond duration (approx.)"
+              valueSize={28}
+              value={exposures.portfolio_duration_years !== null ? `${exposures.portfolio_duration_years.toFixed(1)}y` : "n/a"}
+            />
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>

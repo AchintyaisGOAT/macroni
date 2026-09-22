@@ -4,8 +4,9 @@ import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { Dot } from "../components/Dot";
 import { PageHeader } from "../components/PageHeader";
+import { Table } from "../components/Table";
 import { extractErrorDetail } from "../lib/errors";
-import { emptyTextStyle, errorTextStyle, inputStyle, labelStyle, loadingTextStyle } from "../styles";
+import { emptyTextStyle, errorTextStyle, formCardWidth, inputStyle, labelStyle, loadingTextStyle } from "../styles";
 
 // Angel One is India-only, so every holding it returns trades in rupees.
 const RUPEE = "₹";
@@ -137,7 +138,7 @@ export function Broker() {
       </Card>
 
       {showForm ? (
-        <Card padding="18px 20px" style={{ alignSelf: "center", width: 920, maxWidth: "100%" }}>
+        <Card padding="18px 20px" style={{ alignSelf: "center", width: formCardWidth, maxWidth: "100%" }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 12 }}>
             {status?.configured ? "Update credentials" : "Connect your account"}
           </div>
@@ -214,28 +215,17 @@ export function Broker() {
           ) : !holdings || holdings.length === 0 ? (
             <div style={emptyTextStyle}>No holdings found in your Angel One account.</div>
           ) : (
-            <table style={{ fontSize: 13, width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr style={{ textAlign: "left", color: "var(--text-muted)", fontSize: 12 }}>
-                  <th style={{ paddingBottom: 6 }}>Symbol</th>
-                  <th>Exchange</th>
-                  <th>Quantity</th>
-                  <th>Avg. price</th>
-                  <th>LTP</th>
-                </tr>
-              </thead>
-              <tbody>
-                {holdings.map((h, i) => (
-                  <tr key={i} style={{ borderTop: "1px solid var(--gridline)" }}>
-                    <td style={{ padding: "6px 0" }}>{h.tradingsymbol}</td>
-                    <td>{h.exchange}</td>
-                    <td>{h.quantity}</td>
-                    <td>{RUPEE}{h.averageprice}</td>
-                    <td>{RUPEE}{h.ltp}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <Table
+              rows={holdings}
+              rowKey={(h) => `${h.tradingsymbol}-${h.exchange}`}
+              columns={[
+                { header: "Symbol", render: (h) => h.tradingsymbol },
+                { header: "Exchange", render: (h) => h.exchange },
+                { header: "Quantity", render: (h) => h.quantity },
+                { header: "Avg. price", render: (h) => `${RUPEE}${h.averageprice}` },
+                { header: "LTP", render: (h) => `${RUPEE}${h.ltp}` },
+              ]}
+            />
           )}
         </Card>
       )}

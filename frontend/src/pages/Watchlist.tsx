@@ -4,6 +4,7 @@ import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { AiCallCell, GuidanceFooter, GuidanceHeader } from "../components/GuidanceParts";
 import { PageHeader } from "../components/PageHeader";
+import { Table } from "../components/Table";
 import { ZoneBadge } from "../components/ZoneBadge";
 import { formatPrice } from "../currency";
 import { extractErrorDetail } from "../lib/errors";
@@ -108,54 +109,55 @@ export function Watchlist() {
             from there.
           </div>
         ) : (
-          <table style={{ fontSize: 13, width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ textAlign: "left", color: "var(--text-muted)", fontSize: 12 }}>
-                <th style={{ paddingBottom: 6 }}>Ticker</th>
-                <th>Price</th>
-                <th>Change</th>
-                <th>Technical zone</th>
-                <th>AI call</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item) => {
-                const call = callByTicker.get(item.ticker);
-                return (
-                  <tr key={item.id} style={{ borderTop: "1px solid var(--gridline)", verticalAlign: "top" }}>
-                    <td style={{ padding: "8px 0", fontWeight: 600 }}>
-                      {item.ticker}
-                      {item.name && <div style={{ fontWeight: 400, fontSize: 11.5, color: "var(--text-muted)" }}>{item.name}</div>}
-                    </td>
-                    <td>{item.price !== null ? formatPrice(item.price, item.ticker) : "-"}</td>
-                    <td
-                      style={{
-                        fontWeight: 600,
-                        color:
-                          item.change_pct === null
-                            ? "var(--text-muted)"
-                            : item.change_pct >= 0
-                              ? "var(--status-good)"
-                              : "var(--status-critical)",
-                      }}
-                    >
-                      {item.change_pct !== null ? `${item.change_pct >= 0 ? "+" : ""}${item.change_pct.toFixed(2)}%` : "-"}
-                    </td>
-                    <td>{item.zone ? <ZoneBadge zone={item.zone} /> : "-"}</td>
-                    <td style={{ maxWidth: 320 }}>
-                      <AiCallCell call={call} />
-                    </td>
-                    <td>
-                      <Button variant="danger" onClick={() => handleRemove(item.id)}>
-                        Remove
-                      </Button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <Table
+            rows={items}
+            rowKey={(item) => item.id}
+            columns={[
+              {
+                header: "Ticker",
+                cellStyle: { fontWeight: 600 },
+                render: (item) => (
+                  <>
+                    {item.ticker}
+                    {item.name && <div style={{ fontWeight: 400, fontSize: 11.5, color: "var(--text-muted)" }}>{item.name}</div>}
+                  </>
+                ),
+              },
+              { header: "Price", render: (item) => (item.price !== null ? formatPrice(item.price, item.ticker) : "-") },
+              {
+                header: "Change",
+                render: (item) => (
+                  <span
+                    style={{
+                      fontWeight: 600,
+                      color:
+                        item.change_pct === null
+                          ? "var(--text-muted)"
+                          : item.change_pct >= 0
+                            ? "var(--status-good)"
+                            : "var(--status-critical)",
+                    }}
+                  >
+                    {item.change_pct !== null ? `${item.change_pct >= 0 ? "+" : ""}${item.change_pct.toFixed(2)}%` : "-"}
+                  </span>
+                ),
+              },
+              { header: "Technical zone", render: (item) => (item.zone ? <ZoneBadge zone={item.zone} /> : "-") },
+              {
+                header: "AI call",
+                cellStyle: { maxWidth: 320 },
+                render: (item) => <AiCallCell call={callByTicker.get(item.ticker)} />,
+              },
+              {
+                header: "",
+                render: (item) => (
+                  <Button variant="danger" onClick={() => handleRemove(item.id)}>
+                    Remove
+                  </Button>
+                ),
+              },
+            ]}
+          />
         )}
 
         <GuidanceFooter guidance={guidance} />

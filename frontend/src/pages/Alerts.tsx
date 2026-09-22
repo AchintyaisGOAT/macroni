@@ -3,18 +3,25 @@ import { api, type AlertEvent } from "../api/client";
 import { AlertItem } from "../components/AlertItem";
 import { Card } from "../components/Card";
 import { PageHeader } from "../components/PageHeader";
-import { emptyTextStyle, loadingTextStyle, sectionLabelStyle } from "../styles";
+import { extractErrorDetail } from "../lib/errors";
+import { emptyTextStyle, errorTextStyle, loadingTextStyle, sectionLabelStyle } from "../styles";
 
 export function Alerts() {
   const [alerts, setAlerts] = useState<AlertEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.alerts().then((a) => {
-      setAlerts(a);
-      setLoading(false);
-    });
-    const interval = setInterval(() => api.alerts().then(setAlerts), 60_000);
+    api
+      .alerts()
+      .then((a) => setAlerts(a))
+      .catch((err) => setError(extractErrorDetail(err)))
+      .finally(() => setLoading(false));
+    const interval = setInterval(() => {
+      api.alerts().then(setAlerts).catch(() => {
+        // Best-effort background refresh - the next successful poll will catch up.
+      });
+    }, 60_000);
     return () => clearInterval(interval);
   }, []);
 
@@ -27,6 +34,8 @@ export function Alerts() {
 
       {loading ? (
         <div style={loadingTextStyle}>Loading...</div>
+      ) : error ? (
+        <div style={errorTextStyle}>{error}</div>
       ) : (
         <>
           <div>

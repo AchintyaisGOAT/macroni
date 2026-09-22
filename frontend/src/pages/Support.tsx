@@ -4,7 +4,7 @@ import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { PageHeader } from "../components/PageHeader";
 import { extractErrorDetail } from "../lib/errors";
-import { errorTextStyle, inputStyle, labelStyle } from "../styles";
+import { errorTextStyle, formCardWidth, inputStyle, labelStyle } from "../styles";
 
 export function Support() {
   const [email, setEmail] = useState("");
@@ -32,14 +32,14 @@ export function Support() {
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <PageHeader title="Support" subtitle="Report a bug or send feedback" />
 
-      <Card padding="18px 20px" style={{ alignSelf: "center", width: 640, maxWidth: "100%" }}>
+      <Card padding="18px 20px" style={{ alignSelf: "center", width: formCardWidth, maxWidth: "100%" }}>
         <p style={{ fontSize: 12.5, color: "var(--text-muted)", lineHeight: 1.6, margin: 0 }}>
           Found something broken, or have an idea for the app? Leave your email below so we can get back to
           you, describe what happened, and hit send.
         </p>
       </Card>
 
-      <Card padding="20px 22px" style={{ alignSelf: "center", width: 640, maxWidth: "100%" }}>
+      <Card padding="20px 22px" style={{ alignSelf: "center", width: formCardWidth, maxWidth: "100%" }}>
         {sent ? (
           <div>
             <div style={{ fontSize: 14, fontWeight: 700, color: "var(--status-good)" }}>Sent - thank you.</div>

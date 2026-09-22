@@ -4,6 +4,7 @@ import { Link, useParams } from "react-router-dom";
 import { api, type MarketStock, type TickerSearchResult } from "../api/client";
 import { Card } from "../components/Card";
 import { PageHeader } from "../components/PageHeader";
+import { Table } from "../components/Table";
 import { ZoneBadge } from "../components/ZoneBadge";
 import { formatPrice } from "../currency";
 import { extractErrorDetail } from "../lib/errors";
@@ -190,40 +191,41 @@ export function MarketStocks() {
         <div style={emptyTextStyle}>No stocks available for this market.</div>
       ) : (
         <Card padding="18px 20px">
-          <table style={{ fontSize: 13, width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ textAlign: "left", color: "var(--text-muted)", fontSize: 12 }}>
-                <th style={{ paddingBottom: 6 }}>Stock</th>
-                <th>Price</th>
-                <th>Change</th>
-                <th>Technical zone</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {stocks.map((s) => {
-                const changeColor =
-                  s.change_pct === null ? "var(--text-muted)" : s.change_pct >= 0 ? "var(--status-good)" : "var(--status-critical)";
-                const added = addedTickers.has(s.ticker);
-                return (
-                  <tr key={s.ticker} style={{ borderTop: "1px solid var(--gridline)" }}>
-                    <td style={{ padding: "8px 0" }}>
-                      <div style={{ fontWeight: 600 }}>{s.ticker}</div>
-                      <div style={{ fontSize: 11.5, color: "var(--text-muted)" }}>{s.name}</div>
-                    </td>
-                    <td>{formatPrice(s.price, s.ticker)}</td>
-                    <td style={{ color: changeColor, fontWeight: 600 }}>
+          <Table
+            rows={stocks}
+            rowKey={(s) => s.ticker}
+            columns={[
+              {
+                header: "Stock",
+                render: (s) => (
+                  <>
+                    <div style={{ fontWeight: 600 }}>{s.ticker}</div>
+                    <div style={{ fontSize: 11.5, color: "var(--text-muted)" }}>{s.name}</div>
+                  </>
+                ),
+              },
+              { header: "Price", render: (s) => formatPrice(s.price, s.ticker) },
+              {
+                header: "Change",
+                render: (s) => {
+                  const changeColor =
+                    s.change_pct === null ? "var(--text-muted)" : s.change_pct >= 0 ? "var(--status-good)" : "var(--status-critical)";
+                  return (
+                    <span style={{ color: changeColor, fontWeight: 600 }}>
                       {s.change_pct !== null ? `${s.change_pct >= 0 ? "+" : ""}${s.change_pct.toFixed(2)}%` : "-"}
-                    </td>
-                    <td>{s.zone ? <ZoneBadge zone={s.zone} /> : "-"}</td>
-                    <td>
-                      <AddToWatchlistButton added={added} onClick={() => handleAdd(s.ticker, s.name)} />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                    </span>
+                  );
+                },
+              },
+              { header: "Technical zone", render: (s) => (s.zone ? <ZoneBadge zone={s.zone} /> : "-") },
+              {
+                header: "",
+                render: (s) => (
+                  <AddToWatchlistButton added={addedTickers.has(s.ticker)} onClick={() => handleAdd(s.ticker, s.name)} />
+                ),
+              },
+            ]}
+          />
         </Card>
       )}
     </div>
