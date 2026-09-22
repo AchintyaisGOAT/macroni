@@ -4,6 +4,8 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from app.broker import angel_one, live_feed
+from app.config import settings
 from app.data_sources.market_search import search_tickers
 from app.db import get_db
 from app.markets.live_quotes import get_live_quotes
@@ -71,7 +73,37 @@ def get_exposures(db: Session = Depends(get_db)):
 @router.get("/live-quotes")
 def get_portfolio_live_quotes(db: Session = Depends(get_db)):
     tickers = [h.ticker for h in list_holdings(db)]
-    return get_live_quotes(tickers)
+
+    # Prefer Angel One's own real-time WebSocket feed (exchange-pushed ticks, not
+    # a polled snapshot) for any holding it actually covers - genuinely live,
+    # since it's the same broker connection already used for the Broker tab.
+    # Anything it doesn't cover (broker not connected, or a non-Angel-One/
+    # international holding) falls back to the polled Yahoo quote below.
+    live_results: list[dict] = []
+    covered_tickers: set[str] = set()
+    if settings.has_angel_credentials and angel_one.is_connected():
+        token_map = angel_one.get_ticker_token_map()
+        subscribe_targets = [(token, exch) for t, (token, exch) in token_map.items() if t in tickers]
+        if subscribe_targets:
+            try:
+                client = angel_one.get_client()
+                live_feed.ensure_subscribed(subscribe_targets, client.access_token, client.feed_token)
+            except Exception:
+                logger.exception("failed to start/update Angel One live feed")
+
+        ticks = live_feed.get_ticks()
+        for ticker in tickers:
+            mapping = token_map.get(ticker)
+            if not mapping:
+                continue
+            token = mapping[0]
+            tick = ticks.get(token)
+            if tick is not None:
+                live_results.append({"ticker": ticker, "price": tick["price"], "change_pct": tick["change_pct"]})
+                covered_tickers.add(ticker)
+
+    remaining = [t for t in tickers if t not in covered_tickers]
+    return live_results + get_live_quotes(remaining)
 
 
 @router.get("/search")
