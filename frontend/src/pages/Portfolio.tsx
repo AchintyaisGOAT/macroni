@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { api, type Exposures, type Holding, type LiveQuote, type TechnicalSignal, type TickerSearchResult } from "../api/client";
+import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { CategoryBreakdown } from "../components/CategoryBreakdown";
+import { PageHeader } from "../components/PageHeader";
 import { TickerSearchInput } from "../components/TickerSearchInput";
 import { TradeGuidancePanel } from "../components/TradeGuidancePanel";
 import { formatPrice, uniformCurrencySymbol } from "../currency";
+import { emptyTextStyle, errorTextStyle, inputStyle } from "../styles";
 
 const ASSET_CLASSES = ["equity", "bond", "commodity", "fx", "cash", "other"];
 
@@ -105,18 +108,11 @@ export function Portfolio() {
     }
   }
 
-  const inputStyle: React.CSSProperties = {
-    background: "var(--surface-1)",
-    border: "1px solid var(--border)",
-    borderRadius: "var(--radius-sm)",
-    padding: "8px 12px",
-    color: "var(--text-primary)",
-    fontSize: 13,
-  };
-
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      <Card padding="18px 20px">
+      <PageHeader title="Portfolio" subtitle="What you actually own, synced from your broker or entered manually" />
+
+      <Card padding="18px 20px" style={{ alignSelf: "center", maxWidth: "100%" }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 12 }}>Add holding</div>
         <form onSubmit={handleAdd} style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           <TickerSearchInput
@@ -127,30 +123,16 @@ export function Portfolio() {
             }}
             onSelect={handleSelectTicker}
           />
-          <input style={inputStyle} placeholder="Quantity" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
-          <select style={inputStyle} value={assetClass} onChange={(e) => setAssetClass(e.target.value)}>
+          <input style={{ ...inputStyle, width: 110 }} placeholder="Quantity" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
+          <select style={{ ...inputStyle, width: 130 }} value={assetClass} onChange={(e) => setAssetClass(e.target.value)}>
             {ASSET_CLASSES.map((a) => (
               <option key={a} value={a}>
                 {a}
               </option>
             ))}
           </select>
-          <input style={inputStyle} placeholder="Region (e.g. US)" value={region} onChange={(e) => setRegion(e.target.value)} />
-          <button
-            type="submit"
-            style={{
-              background: "var(--brand-gradient)",
-              color: "#fff",
-              border: "none",
-              borderRadius: "var(--radius-sm)",
-              padding: "8px 16px",
-              fontSize: 13,
-              fontWeight: 600,
-              boxShadow: "0 4px 14px rgba(236, 72, 153, 0.28)",
-            }}
-          >
-            Add
-          </button>
+          <input style={{ ...inputStyle, width: 130 }} placeholder="Region (e.g. US)" value={region} onChange={(e) => setRegion(e.target.value)} />
+          <Button type="submit">Add</Button>
           <span style={{ color: "var(--text-muted)", fontSize: 12 }}>or</span>
           <input ref={fileInput} type="file" accept=".csv" onChange={handleImport} style={{ fontSize: 12 }} />
         </form>
@@ -163,15 +145,15 @@ export function Portfolio() {
           Type a company name or ticker above and pick from the dropdown, or import a CSV. CSV columns:
           ticker,quantity,asset_class,region (import replaces all holdings).
         </div>
-        {error && <div style={{ color: "var(--status-critical)", fontSize: 12, marginTop: 8 }}>{error}</div>}
+        {error && <div style={{ ...errorTextStyle, marginTop: 8 }}>{error}</div>}
       </Card>
 
       <Card padding="18px 20px">
         <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 12 }}>Holdings</div>
         {holdings.length === 0 ? (
-          <div style={{ color: "var(--text-muted)", fontSize: 13 }}>No holdings yet.</div>
+          <div style={emptyTextStyle}>No holdings yet.</div>
         ) : (
-          <table style={{ fontSize: 13 }}>
+          <table style={{ fontSize: 13, width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ textAlign: "left", color: "var(--text-muted)", fontSize: 12 }}>
                 <th style={{ paddingBottom: 6 }}>Ticker</th>
@@ -215,12 +197,9 @@ export function Portfolio() {
                     <td>{detail?.weight ? `${(detail.weight * 100).toFixed(1)}%` : "-"}</td>
                     <td>{detail?.beta !== null && detail?.beta !== undefined ? detail.beta.toFixed(2) : "-"}</td>
                     <td>
-                      <button
-                        onClick={() => handleDelete(h.id)}
-                        style={{ background: "transparent", border: "none", color: "var(--status-critical)", fontSize: 12 }}
-                      >
+                      <Button variant="danger" onClick={() => handleDelete(h.id)}>
                         Remove
-                      </button>
+                      </Button>
                     </td>
                   </tr>
                 );

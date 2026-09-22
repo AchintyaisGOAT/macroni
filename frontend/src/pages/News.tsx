@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, type NewsItem } from "../api/client";
+import { PageHeader } from "../components/PageHeader";
+import { emptyTextStyle, inputStyle, loadingTextStyle } from "../styles";
 
 const SOURCES = [
   { value: "", label: "All sources" },
@@ -55,7 +57,7 @@ function NewsCard({ item, featured }: { item: NewsItem; featured?: boolean }) {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          color: "#fff",
+          color: "var(--on-brand)",
           fontWeight: 800,
           fontSize: featured ? 32 : 20,
         }}
@@ -132,19 +134,12 @@ export function News() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <PageHeader title="News" subtitle="Financial and central-bank headlines" />
+
       <select
         value={source}
         onChange={(e) => setSource(e.target.value)}
-        style={{
-          background: "var(--surface-1)",
-          border: "1px solid var(--border)",
-          borderRadius: "var(--radius-sm)",
-          padding: "8px 12px",
-          color: "var(--text-primary)",
-          fontSize: 13,
-          width: "fit-content",
-          boxShadow: "var(--shadow-card)",
-        }}
+        style={{ ...inputStyle, width: "fit-content", boxShadow: "var(--shadow-card)" }}
       >
         {SOURCES.map((s) => (
           <option key={s.value} value={s.value}>
@@ -154,9 +149,9 @@ export function News() {
       </select>
 
       {loading ? (
-        <div style={{ color: "var(--text-muted)" }}>Loading...</div>
+        <div style={loadingTextStyle}>Loading...</div>
       ) : news.length === 0 ? (
-        <div style={{ color: "var(--text-muted)", fontSize: 13 }}>No news yet.</div>
+        <div style={emptyTextStyle}>No news yet.</div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
           {news.map((item, i) => (

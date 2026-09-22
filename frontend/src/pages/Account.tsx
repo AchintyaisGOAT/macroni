@@ -1,7 +1,10 @@
 import { FirebaseError } from "firebase/app";
 import { useState } from "react";
 import { useAuth } from "../auth/AuthContext";
+import { Button } from "../components/Button";
 import { Card } from "../components/Card";
+import { PageHeader } from "../components/PageHeader";
+import { errorTextStyle, inputStyle, labelStyle, loadingTextStyle } from "../styles";
 
 const FRIENDLY_ERROR: Record<string, string> = {
   "auth/email-already-in-use": "That email already has an account - try logging in instead.",
@@ -19,24 +22,6 @@ function friendlyError(err: unknown): string {
   }
   return String(err);
 }
-
-const inputStyle: React.CSSProperties = {
-  background: "var(--page-plane)",
-  border: "none",
-  borderRadius: "var(--radius-sm)",
-  padding: "10px 14px",
-  color: "var(--text-primary)",
-  fontSize: 13.5,
-  width: "100%",
-};
-
-const labelStyle: React.CSSProperties = {
-  fontSize: 12,
-  color: "var(--text-secondary)",
-  fontWeight: 600,
-  marginBottom: 4,
-  display: "block",
-};
 
 export function Account() {
   const { user, loading, signUp, logIn, logOut, resetPassword } = useAuth();
@@ -81,8 +66,10 @@ export function Account() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 480 }}>
-      <Card padding="18px 20px">
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <PageHeader title="Account" />
+
+      <Card padding="18px 20px" style={{ alignSelf: "center", width: 640, maxWidth: "100%" }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 6 }}>
           Optional account
         </div>
@@ -95,34 +82,21 @@ export function Account() {
       </Card>
 
       {loading ? (
-        <Card padding="20px 22px">
-          <div style={{ color: "var(--text-muted)", fontSize: 13 }}>Loading...</div>
+        <Card padding="20px 22px" style={{ alignSelf: "center", width: 480, maxWidth: "100%" }}>
+          <div style={loadingTextStyle}>Loading...</div>
         </Card>
       ) : user ? (
-        <Card padding="20px 22px">
+        <Card padding="20px 22px" style={{ alignSelf: "center", width: 480, maxWidth: "100%" }}>
           <div style={{ fontSize: 14, fontWeight: 700 }}>Signed in as {user.email}</div>
           <p style={{ fontSize: 12.5, color: "var(--text-secondary)", marginTop: 6 }}>
             Signing out doesn't affect your portfolio, broker connection, or anything else in the app.
           </p>
-          <button
-            onClick={() => logOut()}
-            style={{
-              marginTop: 12,
-              background: "var(--brand-gradient)",
-              color: "#fff",
-              border: "none",
-              borderRadius: "var(--radius-sm)",
-              padding: "9px 20px",
-              fontSize: 13,
-              fontWeight: 600,
-              boxShadow: "0 4px 14px rgba(236, 72, 153, 0.28)",
-            }}
-          >
+          <Button onClick={() => logOut()} style={{ marginTop: 12 }} fontSize={13}>
             Sign out
-          </button>
+          </Button>
         </Card>
       ) : (
-        <Card padding="20px 22px">
+        <Card padding="20px 22px" style={{ alignSelf: "center", width: 480, maxWidth: "100%" }}>
           <div style={{ display: "flex", gap: 16, marginBottom: 16, borderBottom: "1px solid var(--gridline)" }}>
             {(["login", "signup"] as const).map((m) => (
               <button
@@ -139,7 +113,7 @@ export function Account() {
                   fontSize: 13.5,
                   fontWeight: 700,
                   color: mode === m ? "var(--text-primary)" : "var(--text-muted)",
-                  borderBottom: mode === m ? "2px solid transparent" : "2px solid transparent",
+                  borderBottom: "2px solid transparent",
                   backgroundImage: mode === m ? "var(--brand-gradient)" : "none",
                   WebkitBackgroundClip: mode === m ? "text" : undefined,
                   backgroundClip: mode === m ? "text" : undefined,
@@ -160,7 +134,7 @@ export function Account() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                style={inputStyle}
+                style={{ ...inputStyle, width: "100%" }}
               />
             </div>
             <div>
@@ -172,26 +146,17 @@ export function Account() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="At least 6 characters"
-                style={inputStyle}
+                style={{ ...inputStyle, width: "100%" }}
               />
             </div>
-            <button
+            <Button
               type="submit"
               disabled={submitting || !email.trim() || password.length < 6}
-              style={{
-                alignSelf: "flex-start",
-                background: "var(--brand-gradient)",
-                color: "#fff",
-                border: "none",
-                borderRadius: "var(--radius-sm)",
-                padding: "10px 22px",
-                fontSize: 13,
-                fontWeight: 600,
-                boxShadow: "0 4px 14px rgba(236, 72, 153, 0.28)",
-              }}
+              style={{ alignSelf: "flex-start" }}
+              fontSize={13}
             >
               {submitting ? "Please wait..." : mode === "login" ? "Log in" : "Sign up"}
-            </button>
+            </Button>
             {mode === "login" && (
               <button
                 type="button"
@@ -206,7 +171,7 @@ export function Account() {
                 Password reset email sent - check your inbox.
               </div>
             )}
-            {error && <div style={{ color: "var(--status-critical)", fontSize: 12 }}>{error}</div>}
+            {error && <div style={errorTextStyle}>{error}</div>}
           </form>
         </Card>
       )}

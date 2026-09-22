@@ -1,47 +1,40 @@
+import { Check, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api, type MarketStock, type TickerSearchResult } from "../api/client";
 import { Card } from "../components/Card";
+import { PageHeader } from "../components/PageHeader";
+import { ZoneBadge } from "../components/ZoneBadge";
 import { formatPrice } from "../currency";
+import { extractErrorDetail } from "../lib/errors";
+import { emptyTextStyle, errorTextStyle, inputStyle, loadingTextStyle, sectionLabelStyle } from "../styles";
 
-function extractErrorDetail(err: unknown): string {
-  const message = String(err instanceof Error ? err.message : err);
-  const jsonStart = message.indexOf("{");
-  if (jsonStart === -1) return message;
-  try {
-    const parsed = JSON.parse(message.slice(jsonStart));
-    if (typeof parsed.detail === "string") return parsed.detail;
-  } catch {
-    // fall through to raw message
-  }
-  return message;
-}
-
-const ZONE_COLOR: Record<string, string> = {
-  strong_buy: "var(--status-good)",
-  buy: "var(--status-good)",
-  neutral: "var(--status-warning)",
-  sell: "var(--status-critical)",
-  strong_sell: "var(--status-critical)",
-};
-
-function ZoneBadge({ zone }: { zone: string }) {
-  const color = ZONE_COLOR[zone] ?? "var(--text-muted)";
-  const strong = zone.startsWith("strong");
+// A quiet icon-only toggle, not a loud gradient CTA - this repeats down every
+// row of a table (sometimes 20+ times), so the "add one item" action needs
+// to read as routine, not as 20 competing calls-to-action stacked on top of
+// each other.
+function AddToWatchlistButton({ added, onClick }: { added: boolean; onClick: () => void }) {
   return (
-    <span
+    <button
+      onClick={onClick}
+      disabled={added}
+      title={added ? "Already on your watchlist" : "Add to watchlist"}
+      aria-label={added ? "Already on your watchlist" : "Add to watchlist"}
       style={{
-        display: "inline-block",
-        padding: "3px 10px",
-        borderRadius: 999,
-        fontSize: 11,
-        fontWeight: strong ? 800 : 600,
-        color,
-        background: `color-mix(in srgb, ${color} 16%, transparent)`,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: 28,
+        height: 28,
+        background: added ? "transparent" : "var(--page-plane)",
+        color: added ? "var(--status-good)" : "var(--brand-pink)",
+        border: "none",
+        borderRadius: "var(--radius-sm)",
+        flexShrink: 0,
       }}
     >
-      {zone.replace("_", " ").toUpperCase()}
-    </span>
+      {added ? <Check size={15} strokeWidth={2.5} /> : <Plus size={15} strokeWidth={2.5} />}
+    </button>
   );
 }
 
@@ -135,40 +128,36 @@ export function MarketStocks() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      <Link to="/markets" style={{ fontSize: 12.5, color: "var(--text-secondary)", fontWeight: 600, textDecoration: "none" }}>
-        &larr; Back to Global Markets
-      </Link>
+      <PageHeader
+        title={`${code} stocks`}
+        subtitle="Search reaches any listed stock, not just the curated list below"
+        actions={
+          <Link to="/markets" style={{ fontSize: 12.5, color: "var(--text-secondary)", fontWeight: 600, textDecoration: "none" }}>
+            &larr; Back to Global Markets
+          </Link>
+        }
+      />
 
       <Card padding="14px 20px">
         <div style={{ fontSize: 13, fontWeight: 600 }}>{code} - search & major stocks</div>
         <div style={{ fontSize: 11.5, color: "var(--text-muted)", marginTop: 4, lineHeight: 1.5 }}>
-          Search reaches any stock listed on this market, small or large cap - not just the curated list
-          below. Technical zones are computed directly from price history, no AI involved.
+          Technical zones are computed directly from price history, no AI involved.
         </div>
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={`Search ${code} stocks by name or ticker...`}
-          style={{
-            marginTop: 12,
-            width: "100%",
-            background: "var(--page-plane)",
-            border: "none",
-            borderRadius: "var(--radius-sm)",
-            padding: "10px 14px",
-            color: "var(--text-primary)",
-            fontSize: 13.5,
-          }}
+          style={{ ...inputStyle, marginTop: 12, width: "100%", fontSize: 13.5 }}
         />
       </Card>
 
       {query.trim() && (
         <Card padding="16px 18px">
-          <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 10 }}>
+          <div style={{ ...sectionLabelStyle, fontSize: 12, marginBottom: 10 }}>
             {searching ? "Searching..." : `Search results (${searchResults.length})`}
           </div>
           {!searching && searchResults.length === 0 ? (
-            <div style={{ color: "var(--text-muted)", fontSize: 13 }}>No matches found in {code}.</div>
+            <div style={emptyTextStyle}>No matches found in {code}.</div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {searchResults.map((r) => {
@@ -182,22 +171,7 @@ export function MarketStocks() {
                       <span style={{ fontWeight: 600, fontSize: 13 }}>{r.symbol}</span>
                       <span style={{ color: "var(--text-muted)", fontSize: 12, marginLeft: 8 }}>{r.name}</span>
                     </div>
-                    <button
-                      onClick={() => handleAdd(r.symbol, r.name)}
-                      disabled={added}
-                      style={{
-                        background: added ? "transparent" : "var(--brand-gradient)",
-                        color: added ? "var(--text-muted)" : "#fff",
-                        border: "none",
-                        borderRadius: "var(--radius-sm)",
-                        padding: "6px 14px",
-                        fontSize: 12,
-                        fontWeight: 600,
-                        flexShrink: 0,
-                      }}
-                    >
-                      {added ? "Added" : "+ Watchlist"}
-                    </button>
+                    <AddToWatchlistButton added={added} onClick={() => handleAdd(r.symbol, r.name)} />
                   </div>
                 );
               })}
@@ -206,14 +180,14 @@ export function MarketStocks() {
         </Card>
       )}
 
-      <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>Popular stocks</div>
+      <div style={sectionLabelStyle}>Popular stocks</div>
 
       {loading ? (
-        <div style={{ color: "var(--text-muted)", fontSize: 13 }}>Loading...</div>
+        <div style={loadingTextStyle}>Loading...</div>
       ) : error ? (
-        <div style={{ color: "var(--status-critical)", fontSize: 13 }}>{error}</div>
+        <div style={errorTextStyle}>{error}</div>
       ) : stocks.length === 0 ? (
-        <div style={{ color: "var(--text-muted)", fontSize: 13 }}>No stocks available for this market.</div>
+        <div style={emptyTextStyle}>No stocks available for this market.</div>
       ) : (
         <Card padding="18px 20px">
           <table style={{ fontSize: 13, width: "100%", borderCollapse: "collapse" }}>
@@ -243,21 +217,7 @@ export function MarketStocks() {
                     </td>
                     <td>{s.zone ? <ZoneBadge zone={s.zone} /> : "-"}</td>
                     <td>
-                      <button
-                        onClick={() => handleAdd(s.ticker, s.name)}
-                        disabled={added}
-                        style={{
-                          background: added ? "transparent" : "var(--brand-gradient)",
-                          color: added ? "var(--text-muted)" : "#fff",
-                          border: "none",
-                          borderRadius: "var(--radius-sm)",
-                          padding: "6px 14px",
-                          fontSize: 12,
-                          fontWeight: 600,
-                        }}
-                      >
-                        {added ? "Added" : "+ Watchlist"}
-                      </button>
+                      <AddToWatchlistButton added={added} onClick={() => handleAdd(s.ticker, s.name)} />
                     </td>
                   </tr>
                 );

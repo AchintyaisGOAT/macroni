@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api, type TickerSearchResult } from "../api/client";
+import { inputStyle } from "../styles";
 
 interface TickerSearchInputProps {
   value: string;
@@ -44,17 +45,9 @@ export function TickerSearchInput({ value, onChange, onSelect }: TickerSearchInp
   }, []);
 
   return (
-    <div ref={containerRef} style={{ position: "relative", minWidth: 240 }}>
+    <div ref={containerRef} style={{ position: "relative", width: 260 }}>
       <input
-        style={{
-          background: "var(--surface-1)",
-          border: "1px solid var(--border)",
-          borderRadius: "var(--radius-sm)",
-          padding: "8px 12px",
-          color: "var(--text-primary)",
-          fontSize: 13,
-          width: "100%",
-        }}
+        style={{ ...inputStyle, width: "100%" }}
         placeholder="Search company or ticker (e.g. Apple)"
         value={value}
         onChange={(e) => onChange(e.target.value)}

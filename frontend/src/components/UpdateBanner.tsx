@@ -1,18 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, type UpdateCheck } from "../api/client";
-
-function extractErrorDetail(err: unknown): string {
-  const message = String(err instanceof Error ? err.message : err);
-  const jsonStart = message.indexOf("{");
-  if (jsonStart === -1) return message;
-  try {
-    const parsed = JSON.parse(message.slice(jsonStart));
-    if (typeof parsed.detail === "string") return parsed.detail;
-  } catch {
-    // fall through to raw message
-  }
-  return message;
-}
+import { extractErrorDetail } from "../lib/errors";
+import { Button } from "./Button";
 
 function parseVersion(v: string): number[] {
   return v
@@ -102,22 +91,9 @@ export function UpdateBanner() {
       )}
       <span style={{ display: "flex", gap: 12, alignItems: "center", flexShrink: 0 }}>
         {installState !== "restarting" && update.installable && (
-          <button
-            onClick={handleInstall}
-            disabled={installState === "installing"}
-            style={{
-              background: "var(--brand-gradient)",
-              color: "#fff",
-              border: "none",
-              borderRadius: "var(--radius-sm)",
-              padding: "7px 16px",
-              fontSize: 12.5,
-              fontWeight: 700,
-              boxShadow: "0 4px 14px rgba(236, 72, 153, 0.28)",
-            }}
-          >
+          <Button onClick={handleInstall} disabled={installState === "installing"} style={{ padding: "7px 16px" }}>
             {installState === "installing" ? "Installing..." : "Install & Restart"}
-          </button>
+          </Button>
         )}
         {installState !== "restarting" && update.html_url && (
           <a href={update.html_url} target="_blank" rel="noreferrer" style={{ color: "var(--brand-blue)", fontWeight: 700 }}>

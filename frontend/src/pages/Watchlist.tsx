@@ -1,62 +1,13 @@
 import { useEffect, useState } from "react";
 import { api, type TradeGuidance, type WatchlistItemT } from "../api/client";
+import { Button } from "../components/Button";
 import { Card } from "../components/Card";
+import { AiCallCell, GuidanceFooter, GuidanceHeader } from "../components/GuidanceParts";
+import { PageHeader } from "../components/PageHeader";
+import { ZoneBadge } from "../components/ZoneBadge";
 import { formatPrice } from "../currency";
-
-function extractErrorDetail(err: unknown): string {
-  const message = String(err instanceof Error ? err.message : err);
-  const jsonStart = message.indexOf("{");
-  if (jsonStart === -1) return message;
-  try {
-    const parsed = JSON.parse(message.slice(jsonStart));
-    if (typeof parsed.detail === "string") return parsed.detail;
-  } catch {
-    // fall through to raw message
-  }
-  return message;
-}
-
-const ZONE_COLOR: Record<string, string> = {
-  strong_buy: "var(--status-good)",
-  buy: "var(--status-good)",
-  neutral: "var(--status-warning)",
-  hold: "var(--status-warning)",
-  sell: "var(--status-critical)",
-  strong_sell: "var(--status-critical)",
-};
-
-function zoneLabel(zone: string): string {
-  return zone.replace("_", " ").toUpperCase();
-}
-
-function ZoneBadge({ zone }: { zone: string }) {
-  const color = ZONE_COLOR[zone] ?? "var(--text-muted)";
-  const strong = zone.startsWith("strong");
-  return (
-    <span
-      style={{
-        display: "inline-block",
-        padding: "3px 10px",
-        borderRadius: 999,
-        fontSize: 11,
-        fontWeight: strong ? 800 : 600,
-        color,
-        background: `color-mix(in srgb, ${color} 16%, transparent)`,
-      }}
-    >
-      {zoneLabel(zone)}
-    </span>
-  );
-}
-
-const inputStyle: React.CSSProperties = {
-  background: "var(--surface-1)",
-  border: "1px solid var(--border)",
-  borderRadius: "var(--radius-sm)",
-  padding: "8px 12px",
-  color: "var(--text-primary)",
-  fontSize: 13,
-};
+import { extractErrorDetail } from "../lib/errors";
+import { emptyTextStyle, errorTextStyle, inputStyle, loadingTextStyle } from "../styles";
 
 export function Watchlist() {
   const [items, setItems] = useState<WatchlistItemT[]>([]);
@@ -125,13 +76,7 @@ export function Watchlist() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      <Card padding="14px 20px">
-        <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.5 }}>
-          Stocks you're tracking, from any market - separate from your Portfolio, which reflects what you
-          actually own (synced from your broker). Adding something here doesn't buy it or affect your real
-          holdings in any way.
-        </div>
-      </Card>
+      <PageHeader title="Watchlist" subtitle="Stocks you're tracking - separate from your actual Portfolio holdings" />
 
       <Card padding="16px 18px">
         <form onSubmit={handleAdd} style={{ display: "flex", gap: 8 }}>
@@ -141,52 +86,24 @@ export function Watchlist() {
             value={ticker}
             onChange={(e) => setTicker(e.target.value)}
           />
-          <button
-            type="submit"
-            disabled={!ticker.trim()}
-            style={{
-              background: "var(--brand-gradient)",
-              color: "#fff",
-              border: "none",
-              borderRadius: "var(--radius-sm)",
-              padding: "8px 18px",
-              fontSize: 13,
-              fontWeight: 600,
-            }}
-          >
+          <Button type="submit" disabled={!ticker.trim()}>
             Add
-          </button>
+          </Button>
         </form>
       </Card>
 
       <Card padding="18px 20px">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12, gap: 12 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-secondary)" }}>
-            Your watchlist ({items.length})
-          </div>
-          <button
-            onClick={handleGuidanceRefresh}
-            disabled={refreshing || items.length === 0}
-            style={{
-              flexShrink: 0,
-              background: "var(--brand-gradient)",
-              color: "#fff",
-              border: "none",
-              borderRadius: "var(--radius-sm)",
-              padding: "8px 16px",
-              fontSize: 12.5,
-              fontWeight: 600,
-              boxShadow: "0 4px 14px rgba(236, 72, 153, 0.28)",
-            }}
-          >
-            {refreshing ? "Asking AI..." : "Get AI Guidance"}
-          </button>
-        </div>
+        <GuidanceHeader
+          title={`Your watchlist (${items.length})`}
+          onRefresh={handleGuidanceRefresh}
+          refreshing={refreshing}
+          disabled={items.length === 0}
+        />
 
         {loading ? (
-          <div style={{ color: "var(--text-muted)", fontSize: 13 }}>Loading...</div>
+          <div style={loadingTextStyle}>Loading...</div>
         ) : items.length === 0 ? (
-          <div style={{ color: "var(--text-muted)", fontSize: 13 }}>
+          <div style={emptyTextStyle}>
             Nothing here yet - add a ticker above, or browse a market under Global Markets and add stocks
             from there.
           </div>
@@ -227,24 +144,12 @@ export function Watchlist() {
                     </td>
                     <td>{item.zone ? <ZoneBadge zone={item.zone} /> : "-"}</td>
                     <td style={{ maxWidth: 320 }}>
-                      {call ? (
-                        <div>
-                          <ZoneBadge zone={call.call} />
-                          <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4, lineHeight: 1.5 }}>
-                            {call.rationale}
-                          </div>
-                        </div>
-                      ) : (
-                        <span style={{ color: "var(--text-muted)" }}>Not requested yet</span>
-                      )}
+                      <AiCallCell call={call} />
                     </td>
                     <td>
-                      <button
-                        onClick={() => handleRemove(item.id)}
-                        style={{ background: "transparent", border: "none", color: "var(--status-critical)", fontSize: 12 }}
-                      >
+                      <Button variant="danger" onClick={() => handleRemove(item.id)}>
                         Remove
-                      </button>
+                      </Button>
                     </td>
                   </tr>
                 );
@@ -253,18 +158,9 @@ export function Watchlist() {
           </table>
         )}
 
-        {guidance?.overall_note && (
-          <p style={{ fontSize: 13, color: "var(--text-primary)", marginTop: 14, lineHeight: 1.6 }}>{guidance.overall_note}</p>
-        )}
+        <GuidanceFooter guidance={guidance} />
 
-        {error && <div style={{ color: "var(--status-critical)", fontSize: 12, marginTop: 10 }}>{error}</div>}
-
-        {items.length > 0 && (
-          <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--gridline)", lineHeight: 1.5 }}>
-            {guidance?.disclaimer ??
-              "Generated from quantitative technical signals and macro data only. Not registered investment advice, not personalized to your full financial situation, and not a guarantee of future performance. You are solely responsible for your own trading decisions."}
-          </p>
-        )}
+        {error && <div style={{ ...errorTextStyle, marginTop: 10 }}>{error}</div>}
       </Card>
     </div>
   );

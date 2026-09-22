@@ -1,39 +1,14 @@
 import { useEffect, useState } from "react";
 import { api, type BrokerHolding, type BrokerStatus, type SyncResult } from "../api/client";
+import { Button } from "../components/Button";
 import { Card } from "../components/Card";
+import { Dot } from "../components/Dot";
+import { PageHeader } from "../components/PageHeader";
+import { extractErrorDetail } from "../lib/errors";
+import { emptyTextStyle, errorTextStyle, inputStyle, labelStyle, loadingTextStyle } from "../styles";
 
 // Angel One is India-only, so every holding it returns trades in rupees.
 const RUPEE = "₹";
-
-function extractErrorDetail(err: unknown): string {
-  const message = String(err instanceof Error ? err.message : err);
-  const jsonStart = message.indexOf("{");
-  if (jsonStart === -1) return message;
-  try {
-    const parsed = JSON.parse(message.slice(jsonStart));
-    if (typeof parsed.detail === "string") return parsed.detail;
-  } catch {
-    // fall through to raw message
-  }
-  return message;
-}
-
-const inputStyle: React.CSSProperties = {
-  background: "var(--surface-1)",
-  border: "1px solid var(--border)",
-  borderRadius: "var(--radius-sm)",
-  padding: "8px 12px",
-  color: "var(--text-primary)",
-  fontSize: 13,
-};
-
-const labelStyle: React.CSSProperties = {
-  fontSize: 12,
-  color: "var(--text-secondary)",
-  fontWeight: 600,
-  marginBottom: 4,
-  display: "block",
-};
 
 export function Broker() {
   const [status, setStatus] = useState<BrokerStatus | null>(null);
@@ -133,6 +108,8 @@ export function Broker() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <PageHeader title="Broker" subtitle="Read-only connection to Angel One" />
+
       <Card padding="18px 20px">
         <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 6 }}>
           Broker connection · Angel One
@@ -144,17 +121,10 @@ export function Broker() {
           config file, the same way a trading terminal remembers your login.
         </p>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-          <span
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: "50%",
-              background: status?.connected
-                ? "var(--status-good)"
-                : status?.configured
-                  ? "var(--status-warning)"
-                  : "var(--text-muted)",
-            }}
+          <Dot
+            color={
+              status?.connected ? "var(--status-good)" : status?.configured ? "var(--status-warning)" : "var(--text-muted)"
+            }
           />
           <span style={{ fontSize: 13, fontWeight: 600 }}>
             {status?.connected
@@ -167,44 +137,33 @@ export function Broker() {
       </Card>
 
       {showForm ? (
-        <Card padding="18px 20px">
+        <Card padding="18px 20px" style={{ alignSelf: "center", width: 920, maxWidth: "100%" }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 12 }}>
             {status?.configured ? "Update credentials" : "Connect your account"}
           </div>
-          <form onSubmit={handleConnect} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
-            <div>
-              <label style={labelStyle}>API key</label>
-              <input style={{ ...inputStyle, width: "100%" }} type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} />
+          <form onSubmit={handleConnect} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 220px))", gap: 12 }}>
+              <div>
+                <label style={labelStyle}>API key</label>
+                <input style={{ ...inputStyle, width: "100%" }} type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} />
+              </div>
+              <div>
+                <label style={labelStyle}>Client code</label>
+                <input style={{ ...inputStyle, width: "100%" }} value={clientCode} onChange={(e) => setClientCode(e.target.value)} />
+              </div>
+              <div>
+                <label style={labelStyle}>MPIN</label>
+                <input style={{ ...inputStyle, width: "100%" }} type="password" value={mpin} onChange={(e) => setMpin(e.target.value)} />
+              </div>
+              <div>
+                <label style={labelStyle}>TOTP secret</label>
+                <input style={{ ...inputStyle, width: "100%" }} type="password" value={totpSecret} onChange={(e) => setTotpSecret(e.target.value)} />
+              </div>
             </div>
-            <div>
-              <label style={labelStyle}>Client code</label>
-              <input style={{ ...inputStyle, width: "100%" }} value={clientCode} onChange={(e) => setClientCode(e.target.value)} />
-            </div>
-            <div>
-              <label style={labelStyle}>MPIN</label>
-              <input style={{ ...inputStyle, width: "100%" }} type="password" value={mpin} onChange={(e) => setMpin(e.target.value)} />
-            </div>
-            <div>
-              <label style={labelStyle}>TOTP secret</label>
-              <input style={{ ...inputStyle, width: "100%" }} type="password" value={totpSecret} onChange={(e) => setTotpSecret(e.target.value)} />
-            </div>
-            <div style={{ gridColumn: "1 / -1", display: "flex", gap: 10, alignItems: "center" }}>
-              <button
-                type="submit"
-                disabled={connecting || !apiKey || !clientCode || !mpin || !totpSecret}
-                style={{
-                  background: "var(--brand-gradient)",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: "var(--radius-sm)",
-                  padding: "9px 18px",
-                  fontSize: 13,
-                  fontWeight: 600,
-                  boxShadow: "0 4px 14px rgba(236, 72, 153, 0.28)",
-                }}
-              >
+            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              <Button type="submit" disabled={connecting || !apiKey || !clientCode || !mpin || !totpSecret} fontSize={13}>
                 {connecting ? "Connecting..." : "Connect"}
-              </button>
+              </Button>
               {status?.configured && (
                 <button
                   type="button"
@@ -221,7 +180,7 @@ export function Broker() {
             not the 6-digit code itself. MACRONI generates fresh codes from it on every login, so you only enter
             these once - the app reconnects automatically every time it opens.
           </p>
-          {error && <div style={{ color: "var(--status-critical)", fontSize: 12, marginTop: 10 }}>{error}</div>}
+          {error && <div style={{ ...errorTextStyle, marginTop: 10 }}>{error}</div>}
         </Card>
       ) : (
         <Card padding="14px 20px">
@@ -231,7 +190,7 @@ export function Broker() {
           >
             Update credentials
           </button>
-          {error && <div style={{ color: "var(--status-critical)", fontSize: 12, marginTop: 10 }}>{error}</div>}
+          {error && <div style={{ ...errorTextStyle, marginTop: 10 }}>{error}</div>}
         </Card>
       )}
 
@@ -239,22 +198,9 @@ export function Broker() {
         <Card padding="18px 20px">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-secondary)" }}>Live holdings</div>
-            <button
-              onClick={handleSync}
-              disabled={syncing || !holdings || holdings.length === 0}
-              style={{
-                background: "var(--brand-gradient)",
-                color: "#fff",
-                border: "none",
-                borderRadius: "var(--radius-sm)",
-                padding: "8px 16px",
-                fontSize: 12.5,
-                fontWeight: 600,
-                boxShadow: "0 4px 14px rgba(236, 72, 153, 0.28)",
-              }}
-            >
+            <Button onClick={handleSync} disabled={syncing || !holdings || holdings.length === 0}>
               {syncing ? "Syncing..." : "Sync to Portfolio"}
-            </button>
+            </Button>
           </div>
           {syncResult && (
             <div style={{ fontSize: 12, color: "var(--status-good)", marginBottom: 10 }}>
@@ -264,11 +210,11 @@ export function Broker() {
             </div>
           )}
           {holdingsLoading ? (
-            <div style={{ color: "var(--text-muted)", fontSize: 13 }}>Connecting to Angel One...</div>
+            <div style={loadingTextStyle}>Connecting to Angel One...</div>
           ) : !holdings || holdings.length === 0 ? (
-            <div style={{ color: "var(--text-muted)", fontSize: 13 }}>No holdings found in your Angel One account.</div>
+            <div style={emptyTextStyle}>No holdings found in your Angel One account.</div>
           ) : (
-            <table style={{ fontSize: 13, width: "100%" }}>
+            <table style={{ fontSize: 13, width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ textAlign: "left", color: "var(--text-muted)", fontSize: 12 }}>
                   <th style={{ paddingBottom: 6 }}>Symbol</th>

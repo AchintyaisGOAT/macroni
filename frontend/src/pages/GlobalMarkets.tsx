@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, type ExchangeStatus, type RegionSignal } from "../api/client";
 import { Card } from "../components/Card";
+import { Dot } from "../components/Dot";
+import { PageHeader } from "../components/PageHeader";
+import { loadingTextStyle, pillStyle, sectionLabelStyle } from "../styles";
 
 function formatCountdown(iso: string): string {
   const diffMs = new Date(iso).getTime() - Date.now();
@@ -34,17 +37,7 @@ function RegionCard({ r }: { r: RegionSignal }) {
           </div>
         </div>
         {r.volatility_label && (
-          <span
-            style={{
-              fontSize: 10.5,
-              fontWeight: 700,
-              textTransform: "uppercase",
-              color: VOL_COLOR[r.volatility_label] ?? "var(--text-muted)",
-              background: `color-mix(in srgb, ${VOL_COLOR[r.volatility_label] ?? "var(--text-muted)"} 14%, transparent)`,
-              padding: "3px 8px",
-              borderRadius: 999,
-            }}
-          >
+          <span style={{ ...pillStyle(VOL_COLOR[r.volatility_label] ?? "var(--text-muted)"), textTransform: "uppercase", fontSize: 10.5 }}>
             {r.volatility_label} vol
           </span>
         )}
@@ -123,6 +116,8 @@ export function GlobalMarkets() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <PageHeader title="Global Markets" subtitle="Exchange hours and regional performance" />
+
       <Card padding="14px 20px">
         <div style={{ fontSize: 13, fontWeight: 600 }}>
           {loading ? "Loading..." : `${openCount} of ${exchanges.length} major markets open right now`}
@@ -135,7 +130,7 @@ export function GlobalMarkets() {
       </Card>
 
       {loading ? (
-        <div style={{ color: "var(--text-muted)", fontSize: 13 }}>Loading...</div>
+        <div style={loadingTextStyle}>Loading...</div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(230px, 1fr))", gap: 16 }}>
           {exchanges.map((e) => (
@@ -153,14 +148,7 @@ export function GlobalMarkets() {
                     textTransform: "uppercase",
                   }}
                 >
-                  <span
-                    style={{
-                      width: 7,
-                      height: 7,
-                      borderRadius: "50%",
-                      background: e.is_open ? "var(--status-good)" : "var(--text-muted)",
-                    }}
-                  />
+                  <Dot color={e.is_open ? "var(--status-good)" : "var(--text-muted)"} size={7} />
                   {e.is_open ? "Open" : "Closed"}
                 </span>
               </div>
@@ -182,9 +170,9 @@ export function GlobalMarkets() {
         </div>
       )}
 
-      <div style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 6 }}>Regional performance</div>
+      <div style={{ ...sectionLabelStyle, marginTop: 6 }}>Regional performance</div>
       {regionsLoading ? (
-        <div style={{ color: "var(--text-muted)", fontSize: 13 }}>Loading...</div>
+        <div style={loadingTextStyle}>Loading...</div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(230px, 1fr))", gap: 16 }}>
           {regions.map((r) => (

@@ -1,4 +1,6 @@
+import { emptyTextStyle, sectionLabelStyle } from "../styles";
 import { Card } from "./Card";
+import { Dot } from "./Dot";
 
 const SERIES_COLORS = [
   "var(--series-1)",
@@ -22,8 +24,8 @@ export function CategoryBreakdown({ title, data }: CategoryBreakdownProps) {
 
   return (
     <Card padding="18px 20px">
-      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 12 }}>{title}</div>
-      {entries.length === 0 && <div style={{ color: "var(--text-muted)", fontSize: 13 }}>No data</div>}
+      <div style={{ ...sectionLabelStyle, marginBottom: 12 }}>{title}</div>
+      {entries.length === 0 && <div style={emptyTextStyle}>No data</div>}
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {entries.map(([category, value], i) => {
           const pct = total > 0 ? (value / total) * 100 : 0;
@@ -40,10 +42,7 @@ export function CategoryBreakdown({ title, data }: CategoryBreakdownProps) {
                 }}
               >
                 <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span
-                    aria-hidden
-                    style={{ width: 8, height: 8, borderRadius: "50%", background: color, display: "inline-block" }}
-                  />
+                  <Dot color={color} />
                   {category}
                 </span>
                 <span>{pct.toFixed(1)}%</span>

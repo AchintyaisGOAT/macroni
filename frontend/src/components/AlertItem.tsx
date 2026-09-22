@@ -1,13 +1,8 @@
 import type { AlertEvent } from "../api/client";
-
-const SEVERITY_COLOR: Record<string, string> = {
-  low: "var(--status-good)",
-  medium: "var(--status-warning)",
-  high: "var(--status-critical)",
-};
+import { severityColor } from "../lib/severity";
 
 export function AlertItem({ alert }: { alert: AlertEvent }) {
-  const color = SEVERITY_COLOR[alert.severity] ?? "var(--text-muted)";
+  const color = severityColor(alert.severity);
   return (
     <div
       style={{

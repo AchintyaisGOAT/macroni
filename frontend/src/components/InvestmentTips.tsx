@@ -1,12 +1,10 @@
 import { useState } from "react";
 import { api, type InvestmentTip, type RegimeStatus } from "../api/client";
+import { severityColor } from "../lib/severity";
+import { errorTextStyle } from "../styles";
+import { Button } from "./Button";
 import { Card } from "./Card";
-
-const SEVERITY_COLOR: Record<string, string> = {
-  low: "var(--status-good)",
-  medium: "var(--status-warning)",
-  high: "var(--status-critical)",
-};
+import { Dot } from "./Dot";
 
 const CATEGORY_LABEL: Record<string, string> = {
   diversification: "Diversification",
@@ -39,38 +37,19 @@ export function InvestmentTips({ tips, status, onRefresh }: InvestmentTipsProps)
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
         <div
           style={{
-            fontSize: 11,
+            fontSize: 13,
             fontWeight: 700,
-            letterSpacing: 0.4,
-            textTransform: "uppercase",
-            background: "var(--brand-gradient)",
-            WebkitBackgroundClip: "text",
-            backgroundClip: "text",
-            color: "transparent",
+            color: "var(--text-primary)",
           }}
         >
           Investment tips
         </div>
-        <button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          style={{
-            border: "none",
-            background: "var(--page-plane)",
-            color: "var(--text-primary)",
-            borderRadius: "var(--radius-sm)",
-            padding: "7px 14px",
-            fontSize: 12,
-            fontWeight: 600,
-          }}
-        >
+        <Button variant="ghost" onClick={handleRefresh} disabled={refreshing} style={{ padding: "7px 14px" }} fontSize={12}>
           {refreshing ? "Generating..." : "Refresh"}
-        </button>
+        </Button>
       </div>
 
-      {status?.status === "error" && (
-        <div style={{ fontSize: 12, color: "var(--status-critical)", marginTop: 10 }}>{status.reason}</div>
-      )}
+      {status?.status === "error" && <div style={{ ...errorTextStyle, marginTop: 10 }}>{status.reason}</div>}
 
       {tips.length === 0 ? (
         <p style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 12 }}>
@@ -82,17 +61,9 @@ export function InvestmentTips({ tips, status, onRefresh }: InvestmentTipsProps)
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 14 }}>
           {tips.map((t, i) => (
             <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-              <span
-                aria-hidden
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: "50%",
-                  background: SEVERITY_COLOR[t.severity] ?? "var(--text-muted)",
-                  marginTop: 5,
-                  flexShrink: 0,
-                }}
-              />
+              <span style={{ marginTop: 5 }}>
+                <Dot color={severityColor(t.severity)} />
+              </span>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 700 }}>
                   {t.title}{" "}

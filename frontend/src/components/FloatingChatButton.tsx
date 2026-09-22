@@ -1,16 +1,8 @@
+import { MessageCircle, X } from "lucide-react";
 import { useState } from "react";
 import { api, type ChatMessage } from "../api/client";
-
-function ChatIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path
-        d="M4 5.5C4 4.67 4.67 4 5.5 4h13c.83 0 1.5.67 1.5 1.5v9c0 .83-.67 1.5-1.5 1.5H9l-4 4v-4H5.5C4.67 16 4 15.33 4 14.5v-9Z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}
+import { Button } from "./Button";
+import { chatBubbleStyle } from "../styles";
 
 export function FloatingChatButton() {
   const [open, setOpen] = useState(false);
@@ -59,7 +51,7 @@ export function FloatingChatButton() {
             style={{
               padding: "12px 16px",
               background: "var(--brand-gradient)",
-              color: "#fff",
+              color: "var(--on-brand)",
               fontWeight: 700,
               fontSize: 13,
               display: "flex",
@@ -72,9 +64,9 @@ export function FloatingChatButton() {
             <button
               onClick={() => setOpen(false)}
               aria-label="Close chat"
-              style={{ background: "transparent", border: "none", color: "#fff", fontSize: 18, cursor: "pointer", lineHeight: 1, padding: 2 }}
+              style={{ background: "transparent", border: "none", color: "var(--on-brand)", cursor: "pointer", lineHeight: 1, padding: 2, display: "flex" }}
             >
-              &times;
+              <X size={16} />
             </button>
           </div>
           <div style={{ flex: 1, overflowY: "auto", padding: 14, display: "flex", flexDirection: "column", gap: 10, minHeight: 140 }}>
@@ -85,20 +77,7 @@ export function FloatingChatButton() {
               </div>
             )}
             {messages.map((m, i) => (
-              <div
-                key={i}
-                style={{
-                  alignSelf: m.role === "user" ? "flex-end" : "flex-start",
-                  maxWidth: "85%",
-                  background: m.role === "user" ? "var(--brand-gradient)" : "var(--page-plane)",
-                  color: m.role === "user" ? "#fff" : "var(--text-primary)",
-                  borderRadius: "var(--radius-md)",
-                  padding: "8px 12px",
-                  fontSize: 12.5,
-                  lineHeight: 1.5,
-                  whiteSpace: "pre-wrap",
-                }}
-              >
+              <div key={i} style={chatBubbleStyle(m.role, true)}>
                 {m.content}
               </div>
             ))}
@@ -126,22 +105,9 @@ export function FloatingChatButton() {
                 minWidth: 0,
               }}
             />
-            <button
-              type="submit"
-              disabled={sending || !input.trim()}
-              style={{
-                background: "var(--brand-gradient)",
-                color: "#fff",
-                border: "none",
-                borderRadius: "var(--radius-sm)",
-                padding: "8px 14px",
-                fontSize: 12,
-                fontWeight: 600,
-                flexShrink: 0,
-              }}
-            >
+            <Button type="submit" disabled={sending || !input.trim()} style={{ padding: "8px 14px", flexShrink: 0 }} fontSize={12}>
               Send
-            </button>
+            </Button>
           </form>
         </div>
       )}
@@ -156,9 +122,9 @@ export function FloatingChatButton() {
           height: 56,
           borderRadius: "50%",
           background: "var(--brand-gradient)",
-          color: "#fff",
+          color: "var(--on-brand)",
           border: "none",
-          boxShadow: "0 10px 30px rgba(236, 72, 153, 0.4)",
+          boxShadow: "0 10px 30px rgba(252, 70, 107, 0.4)",
           cursor: "pointer",
           zIndex: 1000,
           display: "flex",
@@ -167,7 +133,7 @@ export function FloatingChatButton() {
           transition: "transform 0.15s ease",
         }}
       >
-        <ChatIcon />
+        <MessageCircle size={24} />
       </button>
     </>
   );

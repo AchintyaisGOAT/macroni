@@ -4,11 +4,13 @@ interface CardProps {
   children: ReactNode;
   style?: CSSProperties;
   padding?: string;
+  onClick?: () => void;
 }
 
-export function Card({ children, style, padding = "20px 22px" }: CardProps) {
+export function Card({ children, style, padding = "20px 22px", onClick }: CardProps) {
   return (
     <div
+      onClick={onClick}
       style={{
         background: "var(--surface-1)",
         borderRadius: "var(--radius-lg)",
